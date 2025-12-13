@@ -1,0 +1,208 @@
+/* Modern Dark Theme - Photoshop Style for Ikona */
+
+/* Global styles */
+* {
+    font-family: "Segoe UI", "Ubuntu", "San Francisco", sans-serif;
+}
+
+/* Main window background */
+window {
+    background-color: #383838;
+    color: #e0e0e0;
+}
+
+/* Top bar - dark with subtle border */
+.top-bar {
+    background-color: #252525;
+    border-bottom: 1px solid #3d3d3d;
+    padding: 10px 12px;
+}
+
+/* Left sidebar - slightly lighter dark */
+.sidebar {
+    background-color: #2d2d2d;
+    border-right: 1px solid #3d3d3d;
+    padding: 16px 8px;
+}
+
+/* Bottom bar */
+.bottom-bar {
+    background-color: #252525;
+    border-top: 1px solid #3d3d3d;
+    padding: 10px 12px;
+}
+
+/* Buttons - Dark theme */
+button {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+    border: 1px solid #4d4d4d;
+    border-radius: 3px;
+    padding: 8px 12px;
+    font-weight: 500;
+    font-size: 12px;
+    transition: all 0.15s ease;
+    outline: none;
+}
+
+button:hover {
+    background-color: #4d4d4d;
+    border-color: #0078d4;
+    color: #ffffff;
+}
+
+button:active {
+    background-color: #0078d4;
+    border-color: #0078d4;
+    color: #ffffff;
+}
+
+button:focus {
+    border-color: #0078d4;
+    box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+/* Sidebar buttons - more prominent */
+.sidebar button {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+    border: 1px solid #4d4d4d;
+    border-radius: 3px;
+    padding: 12px 10px;
+    font-weight: 500;
+    font-size: 11px;
+    margin-bottom: 6px;
+    min-height: 40px;
+    transition: all 0.15s ease;
+}
+
+.sidebar button:hover {
+    background-color: #4d4d4d;
+    border-color: #0078d4;
+    color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.sidebar button:active {
+    background-color: #0078d4;
+    border-color: #0078d4;
+    color: #ffffff;
+}
+
+/* Top/Bottom bar buttons - compact */
+.top-bar button,
+.bottom-bar button {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+    border: 1px solid #4d4d4d;
+    border-radius: 3px;
+    padding: 6px 10px;
+    font-weight: 500;
+    font-size: 11px;
+    margin-right: 4px;
+    transition: all 0.15s ease;
+}
+
+.top-bar button:hover,
+.bottom-bar button:hover {
+    background-color: #4d4d4d;
+    border-color: #0078d4;
+    color: #ffffff;
+}
+
+/* Labels and text */
+label {
+    font-size: 12px;
+    color: #a0a0a0;
+    font-weight: 500;
+}
+
+/* Entry fields */
+entry {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+    border: 1px solid #4d4d4d;
+    border-radius: 3px;
+    padding: 8px 10px;
+    font-size: 12px;
+    transition: all 0.15s ease;
+}
+
+entry:focus {
+    border-color: #0078d4;
+    background-color: #3d3d3d;
+    color: #ffffff;
+}
+
+/* Separators */
+separator {
+    background-color: #3d3d3d;
+    margin: 8px 0;
+}
+
+/* Scrolled window */
+scrolledwindow {
+    background-color: #1e1e1e;
+    border: 1px solid #3d3d3d;
+    border-radius: 3px;
+}
+
+/* Scrollbar styling */
+scrollbar {
+    background-color: #2d2d2d;
+}
+
+scrollbar slider {
+    background-color: #4d4d4d;
+    border-radius: 4px;
+    border: none;
+    min-width: 8px;
+    min-height: 8px;
+}
+
+scrollbar slider:hover {
+    background-color: #5d5d5d;
+}
+
+/* Grid/View */
+grid,
+box {
+    background-color: transparent;
+}
+
+/* Stack / Tab navigation */
+.tab-label {
+    padding: 8px 16px;
+    font-weight: 500;
+    font-size: 12px;
+    border-bottom: 2px solid transparent;
+    color: #a0a0a0;
+    transition: all 0.15s ease;
+}
+
+.tab-label:hover {
+    color: #e0e0e0;
+}
+
+.tab-label.active {
+    color: #0078d4;
+    border-bottom-color: #0078d4;
+}
+
+/* Spinner */
+spinner {
+    color: #0078d4;
+}
+
+/* Status bar text */
+statusbar {
+    background-color: #252525;
+    border-top: 1px solid #3d3d3d;
+    color: #a0a0a0;
+    font-size: 11px;
+}
+
+/* Secondary viewer window - dark background */
+.secondary-viewer {
+    background-color: #0a0a0a;
+}
