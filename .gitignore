@@ -1,0 +1,6 @@
+/build/
+*.jpg
+*.txt
+backup*/
+ikona-portable
+DCODESnpm-cache

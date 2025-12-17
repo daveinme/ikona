@@ -1,0 +1,18 @@
+# Auto-detect text files and normalize
+* text=auto
+
+# Keep source files with LF line endings
+*.c     text eol=lf
+*.h     text eol=lf
+*.rc    text eol=lf
+meson.build text eol=lf
+*.css   text eol=lf
+*.md    text eol=lf
+*.txt   text eol=lf
+
+# Binary files
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+icons/** binary

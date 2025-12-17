@@ -166,27 +166,22 @@ void secondary_viewer_display_page(void) {
     g_info("Displaying secondary viewer page %d", secondary_viewer_current_page);
     if (!secondary_viewer_grid_container) return; // Ensure grid container exists
 
-    // Inizializza il provider CSS globale una sola volta
-    if (!global_css_provider) {
-        global_css_provider = gtk_css_provider_new();
-        gtk_css_provider_load_from_data(global_css_provider,
-            "frame { border: 3px solid #00CC00; }", -1, NULL);
-    }
-
     gtk_container_foreach(GTK_CONTAINER(secondary_viewer_grid_container),
                          (GtkCallback)gtk_widget_destroy, NULL);
 
     GtkWidget *grid = gtk_grid_new();
-    gtk_grid_set_row_spacing(GTK_GRID(grid), 12);
-    gtk_grid_set_column_spacing(GTK_GRID(grid), 15);
-    gtk_container_set_border_width(GTK_CONTAINER(grid), 15);
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 16);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 20);
+    gtk_container_set_border_width(GTK_CONTAINER(grid), 20);
     gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
+    gtk_widget_set_hexpand(grid, TRUE);
+    gtk_widget_set_vexpand(grid, TRUE);
 
-    // Pre-crea la struttura 3x3 con celle di dimensione fissa
+    // Pre-crea la struttura 3x3 con celle di dimensione fissa orizzontale ingrandite
     for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
             GtkWidget *placeholder = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-            gtk_widget_set_size_request(placeholder, CELL_SIZE, CELL_SIZE);
+            gtk_widget_set_size_request(placeholder, SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT);
             gtk_grid_attach(GTK_GRID(grid), placeholder, col, row, 1, 1);
         }
     }
@@ -211,16 +206,8 @@ void secondary_viewer_display_page(void) {
             int row = visible_count / 3;
 
             GError *error = NULL;
-            GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(image_files[selected_idx], THUMBNAIL_SIZE, THUMBNAIL_SIZE, TRUE, &error);
+            GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(image_files[selected_idx], SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT, TRUE, &error);
             if (pixbuf) {
-                GtkWidget *frame = gtk_frame_new(NULL);
-                gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_NONE);
-
-                GtkCssProvider *provider = gtk_css_provider_new();
-                gtk_css_provider_load_from_data(provider, "frame { border: 3px solid #00CC00; }", -1, NULL);
-                GtkStyleContext *context = gtk_widget_get_style_context(frame);
-                gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
                 GtkWidget *event_box = gtk_event_box_new();
                 gtk_event_box_set_above_child(GTK_EVENT_BOX(event_box), FALSE);
 
@@ -228,12 +215,18 @@ void secondary_viewer_display_page(void) {
                 gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
                 gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 
-                // Contenitore con clipping per immagini grandi
+                // Contenitore con clipping per immagini - mantiene proporzioni cella fissa
                 GtkWidget *clip_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-                gtk_widget_set_size_request(clip_box, CELL_SIZE, CELL_SIZE);
+                gtk_widget_set_size_request(clip_box, SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT);
+                gtk_style_context_add_class(gtk_widget_get_style_context(clip_box), "image-cell-clip");
+
+                // Aggiungi bordo verde per immagini selezionate
+                if (is_image_selected(selected_idx)) {
+                    gtk_style_context_add_class(gtk_widget_get_style_context(clip_box), "image-cell-selected");
+                }
+
                 gtk_container_add(GTK_CONTAINER(clip_box), image);
-                gtk_container_add(GTK_CONTAINER(frame), clip_box);
-                gtk_container_add(GTK_CONTAINER(event_box), frame);
+                gtk_container_add(GTK_CONTAINER(event_box), clip_box);
                 gtk_grid_attach(GTK_GRID(grid), event_box, col, row, 1, 1);
 
                 g_signal_connect(event_box, "button-press-event", G_CALLBACK(on_image_click), GINT_TO_POINTER(selected_idx));
@@ -252,16 +245,8 @@ void secondary_viewer_display_page(void) {
         int row = 0, col = 0;
         for (int i = start_idx; i < end_idx; i++) {
             GError *error = NULL;
-            GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(image_files[i], THUMBNAIL_SIZE, THUMBNAIL_SIZE, TRUE, &error);
+            GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(image_files[i], SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT, TRUE, &error);
             if (pixbuf) {
-                GtkWidget *frame = gtk_frame_new(NULL);
-                gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_NONE);
-
-                if (is_image_selected(i)) {
-                    GtkStyleContext *context = gtk_widget_get_style_context(frame);
-                    gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(global_css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                }
-
                 GtkWidget *event_box = gtk_event_box_new();
                 gtk_event_box_set_above_child(GTK_EVENT_BOX(event_box), FALSE);
 
@@ -269,12 +254,18 @@ void secondary_viewer_display_page(void) {
                 gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
                 gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 
-                // Contenitore con clipping per immagini grandi
+                // Contenitore con clipping per immagini - mantiene proporzioni cella fissa
                 GtkWidget *clip_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-                gtk_widget_set_size_request(clip_box, CELL_SIZE, CELL_SIZE);
+                gtk_widget_set_size_request(clip_box, SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT);
+                gtk_style_context_add_class(gtk_widget_get_style_context(clip_box), "image-cell-clip");
+
+                // Aggiungi bordo verde per immagini selezionate
+                if (is_image_selected(i)) {
+                    gtk_style_context_add_class(gtk_widget_get_style_context(clip_box), "image-cell-selected");
+                }
+
                 gtk_container_add(GTK_CONTAINER(clip_box), image);
-                gtk_container_add(GTK_CONTAINER(frame), clip_box);
-                gtk_container_add(GTK_CONTAINER(event_box), frame);
+                gtk_container_add(GTK_CONTAINER(event_box), clip_box);
                 gtk_grid_attach(GTK_GRID(grid), event_box, col, row, 1, 1);
 
                 g_signal_connect(event_box, "button-press-event", G_CALLBACK(on_image_click), GINT_TO_POINTER(i));
@@ -336,7 +327,7 @@ void on_secondary_viewer_prev_page(GtkButton *button, gpointer data) {
 GtkWidget *create_secondary_viewer_window(void) {
     secondary_viewer_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(secondary_viewer_window), "Secondary Viewer - Photos Only");
-    gtk_window_set_default_size(GTK_WINDOW(secondary_viewer_window), 800, 600);
+    gtk_window_set_default_size(GTK_WINDOW(secondary_viewer_window), 1200, 850);
     gtk_window_set_position(GTK_WINDOW(secondary_viewer_window), GTK_WIN_POS_CENTER_ALWAYS);
 
     secondary_viewer_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -347,7 +338,7 @@ GtkWidget *create_secondary_viewer_window(void) {
 
     secondary_viewer_scrolled = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(secondary_viewer_scrolled),
-                                   GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+                                   GTK_POLICY_NEVER, GTK_POLICY_NEVER);
     gtk_box_pack_start(GTK_BOX(secondary_viewer_vbox), secondary_viewer_scrolled, TRUE, TRUE, 0);
 
     secondary_viewer_grid_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -384,6 +375,12 @@ void on_select_view_folder(GtkButton *button, gpointer data) {
 }
 
 void load_images_list(void) {
+    DIR *dir;
+    struct dirent *entry;
+    char file_path[2048];
+    const char *ext;
+    int i;
+
     if (strlen(view_folder) == 0) {
         return;
     }
@@ -391,30 +388,33 @@ void load_images_list(void) {
     g_info("Loading images from '%s'", view_folder);
 
     // Pulisci lista precedente
-    for (int i = 0; i < total_images; i++) {
+    for (i = 0; i < total_images; i++) {
         g_free(image_files[i]);
     }
     total_images = 0;
     current_page = 0;
 
-    DIR *dir = opendir(view_folder);
+    dir = opendir(view_folder);
     if (!dir) {
         g_warning("Failed to open view directory: %s", view_folder);
         return;
     }
 
-    struct dirent *entry;
-
     while ((entry = readdir(dir)) != NULL) {
-        char file_path[2048];
         snprintf(file_path, sizeof(file_path), "%s/%s", view_folder, entry->d_name);
 
-        char *content_type = g_content_type_guess(file_path, NULL, 0, NULL);
-        if (content_type && g_str_has_prefix(content_type, "image/jpeg")) {
+        /* Check file extension - supporta JPG, JPEG, PNG, BMP, GIF, TIFF */
+        ext = strrchr(entry->d_name, '.');
+        if (ext && (g_ascii_strcasecmp(ext, ".jpg") == 0 ||
+                    g_ascii_strcasecmp(ext, ".jpeg") == 0 ||
+                    g_ascii_strcasecmp(ext, ".png") == 0 ||
+                    g_ascii_strcasecmp(ext, ".bmp") == 0 ||
+                    g_ascii_strcasecmp(ext, ".gif") == 0 ||
+                    g_ascii_strcasecmp(ext, ".tiff") == 0 ||
+                    g_ascii_strcasecmp(ext, ".tif") == 0)) {
             image_files[total_images] = g_strdup(file_path);
             total_images++;
         }
-        g_free(content_type);
     }
 
     closedir(dir);
@@ -428,13 +428,6 @@ void load_images_list(void) {
 void display_page(void) {
     g_info("Displaying page %d", current_page);
 
-    // Inizializza il provider CSS globale una sola volta
-    if (!global_css_provider) {
-        global_css_provider = gtk_css_provider_new();
-        gtk_css_provider_load_from_data(global_css_provider,
-            "frame { border: 3px solid #00CC00; }", -1, NULL);
-    }
-
     // Pulisci grid precedente
     gtk_container_foreach(GTK_CONTAINER(grid_container),
                          (GtkCallback)gtk_widget_destroy, NULL);
@@ -444,11 +437,11 @@ void display_page(void) {
     gtk_grid_set_column_spacing(GTK_GRID(grid), 30);
     gtk_container_set_border_width(GTK_CONTAINER(grid), 15);
 
-    // Pre-crea la struttura 3x3 con celle di dimensione fissa
+    // Pre-crea la struttura 3x3 con celle di dimensione fissa orizzontale
     for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
             GtkWidget *placeholder = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-            gtk_widget_set_size_request(placeholder, CELL_SIZE, CELL_SIZE);
+            gtk_widget_set_size_request(placeholder, CELL_WIDTH, CELL_HEIGHT);
             gtk_grid_attach(GTK_GRID(grid), placeholder, col, row, 1, 1);
         }
     }
@@ -474,16 +467,8 @@ void display_page(void) {
             int row = visible_count / 3;
 
             GError *error = NULL;
-            GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(image_files[selected_idx], THUMBNAIL_SIZE, THUMBNAIL_SIZE, TRUE, &error);
+            GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(image_files[selected_idx], SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT, TRUE, &error);
             if (pixbuf) {
-                GtkWidget *frame = gtk_frame_new(NULL);
-                gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_NONE);
-
-                GtkCssProvider *provider = gtk_css_provider_new();
-                gtk_css_provider_load_from_data(provider, "frame { border: 3px solid #00CC00; }", -1, NULL);
-                GtkStyleContext *context = gtk_widget_get_style_context(frame);
-                gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-
                 GtkWidget *event_box = gtk_event_box_new();
                 gtk_event_box_set_above_child(GTK_EVENT_BOX(event_box), FALSE);
 
@@ -491,12 +476,18 @@ void display_page(void) {
                 gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
                 gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 
-                // Contenitore con clipping per immagini grandi
+                // Contenitore con clipping per immagini - mantiene proporzioni cella fissa
                 GtkWidget *clip_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-                gtk_widget_set_size_request(clip_box, CELL_SIZE, CELL_SIZE);
+                gtk_widget_set_size_request(clip_box, SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT);
+                gtk_style_context_add_class(gtk_widget_get_style_context(clip_box), "image-cell-clip");
+
+                // Aggiungi bordo verde per immagini selezionate
+                if (is_image_selected(selected_idx)) {
+                    gtk_style_context_add_class(gtk_widget_get_style_context(clip_box), "image-cell-selected");
+                }
+
                 gtk_container_add(GTK_CONTAINER(clip_box), image);
-                gtk_container_add(GTK_CONTAINER(frame), clip_box);
-                gtk_container_add(GTK_CONTAINER(event_box), frame);
+                gtk_container_add(GTK_CONTAINER(event_box), clip_box);
                 gtk_grid_attach(GTK_GRID(grid), event_box, col, row, 1, 1);
 
                 g_signal_connect(event_box, "button-press-event", G_CALLBACK(on_image_click), GINT_TO_POINTER(selected_idx));
@@ -516,16 +507,8 @@ void display_page(void) {
         int row = 0, col = 0;
         for (int i = start_idx; i < end_idx; i++) {
             GError *error = NULL;
-            GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(image_files[i], THUMBNAIL_SIZE, THUMBNAIL_SIZE, TRUE, &error);
+            GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(image_files[i], SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT, TRUE, &error);
             if (pixbuf) {
-                GtkWidget *frame = gtk_frame_new(NULL);
-                gtk_frame_set_shadow_type(GTK_FRAME(frame), GTK_SHADOW_NONE);
-
-                if (is_image_selected(i)) {
-                    GtkStyleContext *context = gtk_widget_get_style_context(frame);
-                    gtk_style_context_add_provider(context, GTK_STYLE_PROVIDER(global_css_provider), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-                }
-
                 GtkWidget *event_box = gtk_event_box_new();
                 gtk_event_box_set_above_child(GTK_EVENT_BOX(event_box), FALSE);
 
@@ -533,12 +516,18 @@ void display_page(void) {
                 gtk_widget_set_halign(image, GTK_ALIGN_CENTER);
                 gtk_widget_set_valign(image, GTK_ALIGN_CENTER);
 
-                // Contenitore con clipping per immagini grandi
+                // Contenitore con clipping per immagini - mantiene proporzioni cella fissa
                 GtkWidget *clip_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-                gtk_widget_set_size_request(clip_box, CELL_SIZE, CELL_SIZE);
+                gtk_widget_set_size_request(clip_box, SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT);
+                gtk_style_context_add_class(gtk_widget_get_style_context(clip_box), "image-cell-clip");
+
+                // Aggiungi bordo verde per immagini selezionate
+                if (is_image_selected(i)) {
+                    gtk_style_context_add_class(gtk_widget_get_style_context(clip_box), "image-cell-selected");
+                }
+
                 gtk_container_add(GTK_CONTAINER(clip_box), image);
-                gtk_container_add(GTK_CONTAINER(frame), clip_box);
-                gtk_container_add(GTK_CONTAINER(event_box), frame);
+                gtk_container_add(GTK_CONTAINER(event_box), clip_box);
                 gtk_grid_attach(GTK_GRID(grid), event_box, col, row, 1, 1);
 
                 g_signal_connect(event_box, "button-press-event", G_CALLBACK(on_image_click), GINT_TO_POINTER(i));
