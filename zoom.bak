@@ -1,0 +1,139 @@
+DEBUG: Pan LEFT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: Pan RIGHT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan RIGHT - new value: 12,000000
+DEBUG: Pan RIGHT - current: 12,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan RIGHT - new value: 12,000000
+DEBUG: Pan RIGHT - current: 12,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan RIGHT - new value: 12,000000
+DEBUG: Pan LEFT - current: 12,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: Pan LEFT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: Pan LEFT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: Pan UP - current: 0,000000, lower: 0,000000, upper: 798,000000, page_size: 798,000000
+DEBUG: Pan UP - new value: 0,000000
+DEBUG: Pan UP - current: 0,000000, lower: 0,000000, upper: 798,000000, page_size: 798,000000
+DEBUG: Pan UP - new value: 0,000000
+DEBUG: Pan DOWN - current: 0,000000, lower: 0,000000, upper: 798,000000, page_size: 798,000000
+DEBUG: Pan DOWN - new value: 0,000000
+DEBUG: Pan DOWN - current: 0,000000, lower: 0,000000, upper: 798,000000, page_size: 798,000000
+DEBUG: Pan DOWN - new value: 0,000000
+DEBUG: Pan UP - current: 0,000000, lower: 0,000000, upper: 798,000000, page_size: 798,000000
+DEBUG: Pan UP - new value: 0,000000
+DEBUG: Pan LEFT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: Pan LEFT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: on_zoom_inc - nuovo zoom: 30
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 30, zoom factor: 1,300000, final scale: 0,221000
+DEBUG: Scaling a: 1326x884
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1326x884
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: on_zoom_inc - nuovo zoom: 40
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 40, zoom factor: 1,400000, final scale: 0,238000
+DEBUG: Scaling a: 1428x952
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1428x952
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: on_zoom_inc - nuovo zoom: 50
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 50, zoom factor: 1,500000, final scale: 0,255000
+DEBUG: Scaling a: 1530x1020
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1530x1020
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: Pan RIGHT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan RIGHT - new value: 12,000000
+DEBUG: Pan RIGHT - current: 12,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan RIGHT - new value: 12,000000
+DEBUG: Pan RIGHT - current: 12,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan RIGHT - new value: 12,000000
+DEBUG: Pan LEFT - current: 12,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: Pan LEFT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: Pan LEFT - current: 0,000000, lower: 0,000000, upper: 1020,000000, page_size: 1008,000000
+DEBUG: Pan LEFT - new value: 0,000000
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 50, zoom factor: 1,500000, final scale: 0,255000
+DEBUG: Scaling a: 1530x1020
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1530x1020
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 50, zoom factor: 1,500000, final scale: 0,255000
+DEBUG: Scaling a: 1530x1020
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1530x1020
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 50, zoom factor: 1,500000, final scale: 0,255000
+DEBUG: Scaling a: 1530x1020
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1530x1020
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 50, zoom factor: 1,500000, final scale: 0,255000
+DEBUG: Scaling a: 1530x1020
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1530x1020
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 50, zoom factor: 1,500000, final scale: 0,255000
+DEBUG: Scaling a: 1530x1020
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1530x1020
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: update_image_display - START
+DEBUG: Dimensioni immagine originale: 6000x4000
+DEBUG: Dimensioni finestra: 1280x800
+DEBUG: Base scale (fit-to-window): 0,170000
+DEBUG: Zoom level: 50, zoom factor: 1,500000, final scale: 0,255000
+DEBUG: Scaling a: 1530x1020
+DEBUG: Pixbuf scalato creato
+DEBUG: Size request set: 1530x1020
+DEBUG: gtk_image_set_from_pixbuf chiamato
+DEBUG: update_image_display - DONE
+DEBUG: Salvataggio immagine: C:\Users\Dave\Desktop\natale\2025-12-07\3/DSC07714.JPG
+DEBUG: Formato rilevato: jpeg
+DEBUG: Immagine salvata con successo in formato jpeg
+
+
+PAN UP DOWN NON FUNZIONA PROPRIO

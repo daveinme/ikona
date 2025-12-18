@@ -8,6 +8,17 @@ gtkdep = dependency('gtk+-3.0')
 cc = meson.get_compiler('c')
 deps = [gtkdep]
 
+# Define common_sources BEFORE the if/else block
+common_sources = [
+  'ikona.c',
+  'importer.c',
+  'viewer.c',
+  'utils.c',
+  'printer.c',
+  'icon_manager.c',
+  'editor.c'
+]
+
 if host_machine.system() == 'windows'
   deps += cc.find_library('winspool', required: true)
   deps += cc.find_library('shell32', required: true)
@@ -17,23 +28,13 @@ if host_machine.system() == 'windows'
     output : 'ikona.o',
     command : ['windres', '-i', '@INPUT@', '-o', '@OUTPUT@', '-O', 'coff'])
   executable('ikona',
-    'ikona.c',
-    'importer.c',
-    'viewer.c',
-    'utils.c',
-    'printer.c',
-    'icon_manager.c',
+    common_sources, # Use common_sources
     res,
     dependencies : deps,
     install : true)
 else
   executable('ikona',
-    'ikona.c',
-    'importer.c',
-    'viewer.c',
-    'utils.c',
-    'printer.c',
-    'icon_manager.c',
+    common_sources, # Use common_sources
     dependencies : deps,
     install : true)
 endif
@@ -46,11 +47,18 @@ configure_file(
 )
 
 # Copy icons directory to build directory
-run_command('mkdir', '-p', '@0@/icons'.format(meson.current_build_dir()),
-  check: false)
-run_command('cp', '-r', '@0@/icons/'.format(meson.current_source_dir()),
-  '@0@/'.format(meson.current_build_dir()),
-  check: false)
+python = import('python')
+python_inst = python.find_installation('python3', required: false)
+if python_inst.found()
+  run_command(
+    python_inst,
+    '-c',
+    'import shutil; shutil.copytree("@0@", "@1@", dirs_exist_ok=True)'.format(
+      meson.current_source_dir() / 'icons',
+      meson.current_build_dir() / 'icons'),
+    check: false
+  )
+endif
 
 # Copy app icon
 configure_file(

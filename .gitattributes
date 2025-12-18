@@ -12,7 +12,6 @@ meson.build text eol=lf
 
 # Binary files
 *.png   binary
+*.ico   binary
 *.jpg   binary
-*.jpeg  binary
-*.gif   binary
-icons/** binary
+*.exe   binary

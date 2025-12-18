@@ -88,8 +88,21 @@ void on_deselect_all(GtkButton *button, gpointer data) {
     deselect_all_images();
 }
 
-void on_toggle_filter(GtkButton *button, gpointer data) {
-    show_only_selected = !show_only_selected;
+void on_show_selected_only(GtkButton *button, gpointer data) {
+    show_only_selected = TRUE;
+
+    // Ripristina a pagina 0
+    current_page = 0;
+    secondary_viewer_current_page = 0;
+
+    display_page();
+    if (secondary_viewer_window && gtk_widget_get_visible(secondary_viewer_window)) {
+        secondary_viewer_display_page();
+    }
+}
+
+void on_show_all(GtkButton *button, gpointer data) {
+    show_only_selected = FALSE;
 
     // Ripristina a pagina 0
     current_page = 0;
@@ -153,9 +166,32 @@ gboolean on_image_click(GtkWidget *widget, GdkEventButton *event, gpointer data)
     toggle_image_selection(image_index);
     selected_image_index = image_index;
 
-    display_page();
-    if (secondary_viewer_window && gtk_widget_get_visible(secondary_viewer_window)) {
-        secondary_viewer_display_page();
+    // In modalità "solo selezionate", non aggiornare automaticamente tutta la griglia
+    // ma aggiorna solo il bordo della foto cliccata e il contatore
+    if (show_only_selected) {
+        // Ottieni il clip_box dall'event_box per aggiornare il bordo
+        GtkWidget *clip_box = gtk_bin_get_child(GTK_BIN(widget));
+        if (clip_box) {
+            GtkStyleContext *context = gtk_widget_get_style_context(clip_box);
+            if (is_image_selected(image_index)) {
+                gtk_style_context_add_class(context, "image-cell-selected");
+            } else {
+                gtk_style_context_remove_class(context, "image-cell-selected");
+            }
+        }
+
+        // Aggiorna il testo della paginazione con il nuovo conteggio
+        int filtered_total = get_filtered_total_images();
+        int total_pages = (filtered_total + images_per_page - 1) / images_per_page;
+        char page_text[100];
+        snprintf(page_text, sizeof(page_text), "Pagina %d/%d (%d immagini selezionate)",
+                 current_page + 1, total_pages, filtered_total);
+        gtk_label_set_text(GTK_LABEL(page_label), page_text);
+    } else {
+        display_page();
+        if (secondary_viewer_window && gtk_widget_get_visible(secondary_viewer_window)) {
+            secondary_viewer_display_page();
+        }
     }
 
     return FALSE;
