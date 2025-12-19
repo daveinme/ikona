@@ -1,0 +1,556 @@
+/* ==========================================
+   IKONA - PREMIUM MINIMAL DESIGN
+   Ultra-refined interface for professionals
+   =========================================== */
+
+/* Global styles */
+* {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Roboto, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    -gtk-icon-theme: 'Adwaita';
+}
+
+/* ============ WINDOW & MAIN ============ */
+window {
+    background-color: #0F0F12;
+    color: #EBEBF0;
+}
+
+/* ============ HEADER BAR ============ */
+headerbar {
+    background-color: #16161B;
+    background-image: linear-gradient(180deg, rgba(91, 95, 255, 0.05) 0%, transparent 100%);
+    border-bottom: 1px solid #2B2B32;
+    color: #EBEBF0;
+    padding: 0 16px;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+headerbar label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ============ SIDEBAR ============ */
+.sidebar {
+    background-color: #16161B;
+    border-right: 1px solid #2B2B32;
+    padding: 16px;
+}
+
+/* ============ TOP & BOTTOM BARS ============ */
+.top-bar,
+.bottom-bar {
+    background-color: #16161B;
+    background-image: linear-gradient(180deg, rgba(91, 95, 255, 0.03) 0%, transparent 100%);
+    border-color: #2B2B32;
+    padding: 8px 12px;
+}
+.top-bar {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+.bottom-bar {
+    border-top-width: 1px;
+    border-top-style: solid;
+}
+
+
+/* ============ BUTTONS ============ */
+button {
+    background: linear-gradient(135deg, #5B5FFF 0%, #4547DD 100%);
+    color: #ffffff;
+    border: 1px solid #4547DD;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(91, 95, 255, 0.25);
+}
+
+button:hover {
+    background: linear-gradient(135deg, #7C7FFF 0%, #5B5FFF 100%);
+    border-color: #5B5FFF;
+    box-shadow: 0 4px 16px rgba(91, 95, 255, 0.4);
+}
+
+button:active {
+    background: linear-gradient(135deg, #4547DD 0%, #3838BB 100%);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+button:focus {
+    border-color: #7C7FFF;
+    box-shadow: 0 0 0 4px rgba(91, 95, 255, 0.25);
+}
+
+button:disabled {
+    background: #1F1F25;
+    border-color: #2B2B32;
+    color: #6B6B73;
+    box-shadow: none;
+    opacity: 0.6;
+}
+
+/* Secondary / Flat buttons */
+button.flat {
+    background: transparent;
+    color: #5B5FFF;
+    border: 1px solid #2B2B32;
+    box-shadow: none;
+}
+
+button.flat:hover {
+    background-color: rgba(91, 95, 255, 0.08);
+    border-color: #5B5FFF;
+    box-shadow: 0 2px 8px rgba(91, 95, 255, 0.15);
+}
+
+button.flat:active {
+    background-color: rgba(91, 95, 255, 0.15);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+
+/* ============ LABELS & TEXT ============ */
+label {
+    font-size: 13px;
+    color: #A0A0A8;
+    font-weight: 500;
+}
+
+label.title {
+    color: #EBEBF0;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ============ ENTRIES & INPUTS ============ */
+entry {
+    background-color: #1F1F25;
+    color: #EBEBF0;
+    caret-color: #5B5FFF;
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+entry:disabled {
+    background-color: #16161B;
+    color: #6B6B73;
+    opacity: 0.5;
+}
+
+entry:focus {
+    border-color: #5B5FFF;
+    background-color: #1F1F25;
+    color: #EBEBF0;
+    box-shadow: 0 0 0 4px rgba(91, 95, 255, 0.15), inset 0 0 0 1px rgba(91, 95, 255, 0.1);
+}
+
+entry text,
+entry > text {
+    background-color: transparent;
+    color: #EBEBF0;
+}
+
+/* ============ SEPARATORS ============ */
+separator {
+    background: linear-gradient(90deg, #2B2B32 0%, transparent 50%, #2B2B32 100%);
+    margin: 16px 0;
+    opacity: 0.5;
+}
+
+/* ============ SCROLLED WINDOWS ============ */
+scrolledwindow {
+    background-color: transparent;
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+    transition: all 0.25s ease;
+    min-height: 450px;
+}
+
+scrolledwindow:focus-within {
+    border-color: #5B5FFF;
+    box-shadow: inset 0 0 0 1px rgba(91, 95, 255, 0.1);
+}
+
+
+
+/* Grid container - always visible */
+box.grid-container {
+    background-color: #0F0F12;
+    min-height: 400px;
+}
+
+/* ============ SCROLLBARS ============ */
+scrollbar {
+    background-color: transparent;
+}
+
+scrollbar slider {
+    background-color: #2B2B32;
+    border-radius: 8px;
+    min-width: 6px;
+    min-height: 6px;
+    transition: all 0.2s ease;
+    margin: 2px;
+}
+
+scrollbar slider:hover {
+    background: linear-gradient(135deg, #4547DD, #5B5FFF);
+    opacity: 0.8;
+}
+
+/* ============ GRID & BOX ============ */
+grid,
+box {
+    background-color: transparent;
+}
+
+/* ============ FRAMES ============ */
+frame {
+    background-color: #16161B;
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+    transition: all 0.25s ease;
+}
+
+frame:focus-within {
+    border-color: #5B5FFF;
+    box-shadow: inset 0 0 0 1px rgba(91, 95, 255, 0.1);
+}
+
+frame > label {
+    font-weight: 600;
+    color: #EBEBF0;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+/* ============ SPINBUTTON ============ */
+spinbutton {
+    border-radius: 8px;
+    border: 1px solid #2B2B32;
+    background-color: #1F1F25;
+    transition: all 0.25s ease;
+}
+
+spinbutton:focus-within {
+    border-color: #5B5FFF;
+    box-shadow: 0 0 0 4px rgba(91, 95, 255, 0.15);
+}
+
+spinbutton entry {
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    color: #EBEBF0;
+    font-weight: 500;
+}
+
+spinbutton button {
+    padding: 6px 10px;
+    border-radius: 0;
+    border: none;
+    background-color: transparent;
+    color: #A0A0A8;
+    box-shadow: none;
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+
+spinbutton button:hover {
+    background-color: rgba(91, 95, 255, 0.1);
+    color: #5B5FFF;
+}
+
+spinbutton button:first-child {
+    border-top-right-radius: 7px;
+    border-bottom-right-radius: 7px;
+    border-left: 1px solid #2B2B32;
+}
+
+spinbutton button:last-child {
+    border-top-left-radius: 7px;
+    border-bottom-left-radius: 7px;
+    border-right: 1px solid #2B2B32;
+}
+
+
+/* ============ COMBOBOX ============ */
+combobox {
+    border-radius: 8px;
+    transition: all 0.25s ease;
+}
+
+combobox > box {
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+    background-color: #1F1F25;
+    transition: all 0.25s ease;
+}
+
+combobox:focus-within > box {
+    border-color: #5B5FFF;
+    box-shadow: 0 0 0 4px rgba(91, 95, 255, 0.15);
+}
+
+combobox cellview {
+    padding: 10px 14px;
+    background-color: transparent;
+    color: #EBEBF0;
+    font-weight: 500;
+}
+
+combobox button {
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    padding: 6px 10px;
+    transition: all 0.2s ease;
+}
+
+combobox button:hover {
+    background-color: rgba(91, 95, 255, 0.1);
+}
+
+combobox button arrow {
+    color: #A0A0A8;
+    transition: color 0.2s ease;
+}
+
+combobox button:hover arrow {
+    color: #5B5FFF;
+}
+
+/* ============ LISTBOX & ROWS ============ */
+list,
+listbox {
+    background-color: transparent;
+    color: #EBEBF0;
+}
+
+row {
+    background-color: transparent;
+    color: #EBEBF0;
+    border-bottom: 1px solid #2B2B32;
+    padding: 12px 14px;
+    transition: all 0.15s ease;
+    font-weight: 500;
+}
+
+row:selected {
+    background-color: rgba(91, 95, 255, 0.12);
+    color: #5B5FFF;
+    border-bottom-color: #5B5FFF;
+    padding-left: 18px;
+}
+
+row:hover:not(:selected) {
+    background-color: rgba(91, 95, 255, 0.06);
+}
+
+row:hover:selected {
+    background-color: rgba(91, 95, 255, 0.18);
+}
+
+/* ============ MENUS & POPUPS ============ */
+menu,
+menuitem {
+    background-color: #16161B;
+    color: #EBEBF0;
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+menuitem {
+    padding: 10px 14px;
+    border: none;
+    transition: all 0.15s ease;
+}
+
+menuitem:hover {
+    background: linear-gradient(90deg, rgba(91, 95, 255, 0.1), transparent);
+    color: #5B5FFF;
+    padding-left: 18px;
+}
+
+/* ============ SPINNER ============ */
+spinner {
+    color: #5B5FFF;
+}
+
+/* ============ DIALOG STYLING ============ */
+dialog {
+    background-color: #16161B;
+    color: #EBEBF0;
+    border: 1px solid #2B2B32;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+dialog .dialog-content {
+    background-color: #16161B;
+    color: #EBEBF0;
+    padding: 24px;
+}
+
+dialog label {
+    color: #EBEBF0;
+    font-weight: 500;
+}
+
+/* ============ MESSAGE DIALOG - PRINT CONFIRMATION ============ */
+.print-dialog {
+    background-color: #16161B;
+}
+
+.print-dialog label {
+    color: #EBEBF0;
+    background-color: transparent;
+    font-weight: 500;
+}
+
+/* ============ STACK TABS ============ */
+.tab-label {
+    padding: 12px 20px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #6B6B73;
+    border-bottom: 3px solid transparent;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 0 4px;
+}
+
+.tab-label:hover {
+    color: #A0A0A8;
+    border-bottom-color: rgba(91, 95, 255, 0.3);
+}
+
+.tab-label.active {
+    color: #5B5FFF;
+    border-bottom-color: #5B5FFF;
+}
+
+/* ============ ICON BUTTONS ============ */
+#icon-button {
+    padding: 2px;
+    min-width: 40px;
+    min-height: 40px;
+    background: linear-gradient(135deg, rgba(91, 95, 255, 0.05), rgba(91, 95, 255, 0.02));
+    border: 1px solid #2B2B32;
+    color: #A0A0A8;
+    border-radius: 8px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+#icon-button:hover {
+    background: linear-gradient(135deg, rgba(91, 95, 255, 0.1), rgba(91, 95, 255, 0.05));
+    border-color: #5B5FFF;
+    box-shadow: 0 4px 16px rgba(91, 95, 255, 0.2);
+    color: #5B5FFF;
+}
+
+#icon-button:active {
+    background: rgba(91, 95, 255, 0.15);
+    border-color: #4547DD;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+#icon-button:focus {
+    border-color: #5B5FFF;
+    box-shadow: 0 0 0 4px rgba(91, 95, 255, 0.2);
+}
+
+#icon-button label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #A0A0A8;
+    transition: color 0.2s ease;
+}
+
+#icon-button:hover label {
+    color: #5B5FFF;
+}
+
+#icon-button image {
+    min-width: 24px;
+    min-height: 24px;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+}
+
+#icon-button:hover image {
+    opacity: 1;
+}
+
+/* Icon-only buttons */
+#icon-only-button {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 4px;
+    background-color: transparent;
+    border: 1px solid transparent;
+    color: #A0A0A8;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: none;
+}
+
+#icon-only-button:hover {
+    background-color: rgba(91, 95, 255, 0.1);
+    border-color: #5B5FFF;
+    color: #5B5FFF;
+    box-shadow: 0 2px 8px rgba(91, 95, 255, 0.15);
+}
+
+#icon-only-button:active {
+    background-color: rgba(91, 95, 255, 0.2);
+    border-color: #4547DD;
+    color: #5B5FFF;
+}
+
+#icon-only-button:focus {
+    border-color: #5B5FFF;
+    box-shadow: 0 0 0 3px rgba(91, 95, 255, 0.2);
+}
+
+#icon-only-button image {
+    min-width: 20px;
+    min-height: 20px;
+    opacity: 0.9;
+    transition: opacity 0.2s ease;
+}
+
+#icon-only-button:hover image {
+    opacity: 1;
+}
+
+/* ============ IMAGE CELLS ============ */
+.image-cell-clip {
+    background: linear-gradient(135deg, #16161B, #1F1F25);
+    min-width: 400px;
+    min-height: 250px;
+    border: 2px solid #2B2B32;
+    border-radius: 8px;
+    transition: all 0.25s ease;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.image-cell-clip:hover {
+    border-color: #00D4FF;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2), 0 0 16px rgba(0, 212, 255, 0.15);
+}
+
+.image-cell-selected {
+    border: 3px solid #00C875;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2), 0 0 20px rgba(0, 200, 117, 0.3);
+}
+

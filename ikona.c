@@ -923,6 +923,7 @@ GtkWidget *create_empty_sidebar(void) {
     return sidebar;
 }
 
+/*
 GtkWidget *create_import_sidebar(void) {
     GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
@@ -1015,6 +1016,86 @@ GtkWidget *create_import_sidebar(void) {
     g_signal_connect(btn_auto, "clicked", G_CALLBACK(on_import_auto_tab), NULL);
 
     return sidebar;
+}*/
+
+GtkWidget *create_import_sidebar(void) {
+    /* 1. Contenitore principale */
+    GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
+    gtk_style_context_add_class(gtk_widget_get_style_context(sidebar), "sidebar");
+
+    /* 2. Titolo */
+    GtkWidget *label = gtk_label_new("📥 IMPORT");
+    gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
+    gtk_box_pack_start(GTK_BOX(sidebar), label, FALSE, FALSE, 10);
+
+    /* 3. Selettore Tab (Manuale / Auto) */
+    GtkWidget *tabs_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_style_context_add_class(gtk_widget_get_style_context(tabs_box), "linked"); // Unisce i pulsanti visivamente
+
+    GtkWidget *btn_manuale = gtk_button_new_with_label("Manuale");
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_manuale), "flat");
+    
+    GtkWidget *btn_auto = gtk_button_new_with_label("Auto");
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_auto), "flat");
+
+    gtk_box_pack_start(GTK_BOX(tabs_box), btn_manuale, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(tabs_box), btn_auto, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(sidebar), tabs_box, FALSE, FALSE, 15);
+
+    /* 4. Stack per il contenuto */
+    GtkWidget *import_stack = gtk_stack_new();
+    gtk_stack_set_transition_type(GTK_STACK(import_stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
+
+    /* --- CONTENUTO MANUALE --- */
+    GtkWidget *manuale_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    
+    gtk_box_pack_start(GTK_BOX(manuale_box), gtk_label_new("Origine:"), FALSE, FALSE, 0);
+    GtkWidget *btn_src = gtk_button_new_with_label("Sfoglia...");
+    g_signal_connect(btn_src, "clicked", G_CALLBACK(on_select_src_folder), NULL);
+    gtk_box_pack_start(GTK_BOX(manuale_box), btn_src, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(manuale_box), gtk_label_new("Destinazione:"), FALSE, FALSE, 0);
+    GtkWidget *btn_dst = gtk_button_new_with_label("Sfoglia...");
+    g_signal_connect(btn_dst, "clicked", G_CALLBACK(on_select_dst_folder), NULL);
+    gtk_box_pack_start(GTK_BOX(manuale_box), btn_dst, FALSE, FALSE, 0);
+
+    if (!import_spinner) import_spinner = gtk_spinner_new();
+    gtk_box_pack_start(GTK_BOX(manuale_box), import_spinner, FALSE, FALSE, 5);
+
+    label_copy_status = gtk_label_new("In attesa...");
+    gtk_box_pack_start(GTK_BOX(manuale_box), label_copy_status, FALSE, FALSE, 0);
+
+    gtk_stack_add_named(GTK_STACK(import_stack), manuale_box, "manuale");
+
+    /* --- CONTENUTO AUTO --- */
+    GtkWidget *auto_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    label_auto_photo_count = gtk_label_new("0 Foto da importare");
+    gtk_box_pack_start(GTK_BOX(auto_box), label_auto_photo_count, FALSE, FALSE, 10);
+
+    GtkWidget *btn_scan = create_icon_only_button(ICON_AGGIORNA, 20, "Aggiorna SD");
+    g_signal_connect(btn_scan, "clicked", G_CALLBACK(on_scan_sd_for_auto), NULL);
+    gtk_box_pack_start(GTK_BOX(auto_box), btn_scan, FALSE, FALSE, 0);
+
+    gtk_stack_add_named(GTK_STACK(import_stack), auto_box, "auto");
+
+    /* Impacchettiamo lo stack al centro */
+    gtk_box_pack_start(GTK_BOX(sidebar), import_stack, TRUE, TRUE, 0);
+
+    /* 5. PULSANTE "IMPORTA" FISSO AI PIEDI */
+    GtkWidget *btn_importa_final = create_icon_only_button(ICON_IMPORTA_SIDEBAR, 20, "IMPORTA");
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_importa_final), "suggested-action");
+    g_signal_connect(btn_importa_final, "clicked", G_CALLBACK(on_import_button_clicked), import_spinner);
+    
+    // Lo mettiamo in fondo alla sidebar
+    gtk_box_pack_end(GTK_BOX(sidebar), btn_importa_final, FALSE, FALSE, 0);
+
+    // Salvataggio riferimenti e segnali tab
+    import_sidebar_stack = import_stack;
+    g_signal_connect(btn_manuale, "clicked", G_CALLBACK(on_import_manual_tab), NULL);
+    g_signal_connect(btn_auto, "clicked", G_CALLBACK(on_import_auto_tab), NULL);
+
+    return sidebar;
 }
 
 void on_clear_view_clicked(GtkButton *button, gpointer data) {
@@ -1023,13 +1104,13 @@ void on_clear_view_clicked(GtkButton *button, gpointer data) {
     strcpy(view_folder, "");
     display_page();
 }
-
+/* Questo è quello buono 
 GtkWidget *create_view_sidebar(void) {
     GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
     gtk_style_context_add_class(gtk_widget_get_style_context(sidebar), "sidebar");
 
-    GtkWidget *label = gtk_label_new("🖼 View");
+    GtkWidget *label = gtk_label_new("Libreria Foto");
     gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
     gtk_box_pack_start(GTK_BOX(sidebar), label, FALSE, FALSE, 0);
 
@@ -1059,6 +1140,10 @@ GtkWidget *create_view_sidebar(void) {
     GtkWidget *btn_show_all = create_icon_only_button(ICON_VIEW_ALL, 20, "Tutte");
     g_signal_connect(btn_show_all, "clicked", G_CALLBACK(on_show_all), NULL);
     gtk_box_pack_start(GTK_BOX(sidebar), btn_show_all, FALSE, FALSE, 0);
+    
+    GtkWidget *btn_edit = create_icon_only_button(ICON_EDITOR, 20, "Modifica");
+    g_signal_connect(btn_edit, "clicked", G_CALLBACK(on_edit_image_clicked), NULL);
+    gtk_box_pack_start(GTK_BOX(sidebar), btn_edit, FALSE, FALSE, 0);
 
     separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
     gtk_box_pack_start(GTK_BOX(sidebar), separator, FALSE, FALSE, 0);
@@ -1067,17 +1152,85 @@ GtkWidget *create_view_sidebar(void) {
     g_signal_connect(btn_secondary, "clicked", G_CALLBACK(on_open_secondary_viewer), NULL);
     gtk_box_pack_start(GTK_BOX(sidebar), btn_secondary, FALSE, FALSE, 0);
 
-    GtkWidget *btn_edit = create_icon_only_button(ICON_EDITOR, 20, "Modifica");
-    g_signal_connect(btn_edit, "clicked", G_CALLBACK(on_edit_image_clicked), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_edit, FALSE, FALSE, 0);
-
     GtkWidget *btn_print = create_icon_only_button(ICON_STAMPA_VIEW, 20, "Stampa");
     g_signal_connect(btn_print, "clicked", G_CALLBACK(on_print_button_clicked), NULL);
     gtk_box_pack_end(GTK_BOX(sidebar), btn_print, FALSE, FALSE, 0);
 
     return sidebar;
 }
+*/
 
+GtkWidget *create_view_sidebar(void) {
+    /* Contenitore principale verticale */
+    GtkWidget *main_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_set_border_width(GTK_CONTAINER(main_container), 16);
+    gtk_style_context_add_class(gtk_widget_get_style_context(main_container), "sidebar");
+
+    /* 1. GRIGLIA SUPERIORE (8 pulsanti) */
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
+    
+    // Titolo
+    GtkWidget *label = gtk_label_new("Libreria Foto");
+    gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
+    gtk_grid_attach(GTK_GRID(grid), label, 0, 0, 2, 1);
+
+    // Definizione e collegamento dei primi 8 pulsanti
+    GtkWidget *btn_folder = create_icon_only_button(ICON_FOLDER_FILL, 20, "Apri");
+    g_signal_connect(btn_folder, "clicked", G_CALLBACK(on_select_view_folder), NULL);
+    gtk_grid_attach(GTK_GRID(grid), btn_folder, 0, 1, 1, 1);
+
+    GtkWidget *btn_clear_view = create_icon_only_button(ICON_TRASH, 20, "Pulisci");
+    g_signal_connect(btn_clear_view, "clicked", G_CALLBACK(on_clear_view_clicked), NULL);
+    gtk_grid_attach(GTK_GRID(grid), btn_clear_view, 1, 1, 1, 1);
+
+    GtkWidget *sep1 = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+    gtk_grid_attach(GTK_GRID(grid), sep1, 0, 2, 2, 1);
+
+    GtkWidget *btn_select_all = create_icon_only_button(ICON_SELEZIONA_TUTTO, 20, "Tutti");
+    g_signal_connect(btn_select_all, "clicked", G_CALLBACK(on_select_all), NULL);
+    gtk_grid_attach(GTK_GRID(grid), btn_select_all, 0, 3, 1, 1);
+
+    GtkWidget *btn_deselect_all = create_icon_only_button(ICON_DESELEZIONA, 20, "Nessuno");
+    g_signal_connect(btn_deselect_all, "clicked", G_CALLBACK(on_deselect_all), NULL);
+    gtk_grid_attach(GTK_GRID(grid), btn_deselect_all, 1, 3, 1, 1);
+
+    GtkWidget *btn_show_selected = create_icon_only_button(ICON_AGGIORNA, 20, "Ref");
+    g_signal_connect(btn_show_selected, "clicked", G_CALLBACK(on_show_selected_only), NULL);
+    gtk_grid_attach(GTK_GRID(grid), btn_show_selected, 0, 4, 1, 1);
+
+    GtkWidget *btn_show_all = create_icon_only_button(ICON_VIEW_ALL, 20, "Tutte");
+    g_signal_connect(btn_show_all, "clicked", G_CALLBACK(on_show_all), NULL);
+    gtk_grid_attach(GTK_GRID(grid), btn_show_all, 1, 4, 1, 1);
+
+    GtkWidget *btn_edit = create_icon_only_button(ICON_EDITOR, 20, "Mod.");
+    g_signal_connect(btn_edit, "clicked", G_CALLBACK(on_edit_image_clicked), NULL);
+    gtk_grid_attach(GTK_GRID(grid), btn_edit, 0, 5, 1, 1);
+
+    GtkWidget *btn_secondary = create_icon_only_button(ICON_MONITOR, 20, "Client");
+    g_signal_connect(btn_secondary, "clicked", G_CALLBACK(on_open_secondary_viewer), NULL);
+    gtk_grid_attach(GTK_GRID(grid), btn_secondary, 1, 5, 1, 1);
+
+    // Aggiungiamo tutte le classi "square-button"
+    GtkWidget *all_btns[] = {btn_folder, btn_clear_view, btn_select_all, btn_deselect_all, btn_show_selected, btn_show_all, btn_edit, btn_secondary};
+    for(int i=0; i<8; i++) gtk_style_context_add_class(gtk_widget_get_style_context(all_btns[i]), "square-button");
+
+    /* Impacchettiamo la griglia in alto */
+    gtk_box_pack_start(GTK_BOX(main_container), grid, FALSE, FALSE, 0);
+
+    /* 2. PULSANTE STAMPA AI PIEDI (Copyright eliminato) */
+    GtkWidget *btn_print = create_icon_only_button(ICON_STAMPA_VIEW, 20, "Stampa");
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_print), "square-button");
+    g_signal_connect(btn_print, "clicked", G_CALLBACK(on_print_button_clicked), NULL);
+    
+    // pack_end lo spinge in fondo alla sidebar
+    gtk_box_pack_end(GTK_BOX(main_container), btn_print, FALSE, FALSE, 0);
+
+    return main_container;
+}
+
+/* Quello vecchio
 GtkWidget *create_print_sidebar(void) {
     GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
@@ -1095,6 +1248,49 @@ GtkWidget *create_print_sidebar(void) {
     gtk_box_pack_end(GTK_BOX(sidebar), btn_print_now, FALSE, FALSE, 0);
 
     return sidebar;
+}*/
+
+/* * Funzione: create_print_sidebar
+ * Layout: GtkGrid per info e GtkBox per ancoraggio pulsante in basso
+ */
+GtkWidget *create_print_sidebar(void) {
+    /* Contenitore principale verticale */
+    GtkWidget *main_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_set_border_width(GTK_CONTAINER(main_container), 16);
+    gtk_style_context_add_class(gtk_widget_get_style_context(main_container), "sidebar");
+
+    /* 1. GRIGLIA SUPERIORE (Informazioni e Titoli) */
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 12);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 10);
+
+    // Titolo della sezione (Riga 0)
+    GtkWidget *label = gtk_label_new("🖨 STAMPA");
+    gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
+    gtk_grid_attach(GTK_GRID(grid), label, 0, 0, 2, 1);
+
+    // Etichetta Coda di Stampa (Riga 1)
+    GtkWidget *lbl_queue = gtk_label_new("Coda di Stampa");
+    gtk_widget_set_halign(lbl_queue, GTK_ALIGN_START); // Allinea a sinistra
+    gtk_grid_attach(GTK_GRID(grid), lbl_queue, 0, 1, 2, 1);
+
+    // Qui in futuro potresti aggiungere altri widget (es. scelta formato)
+    // riga 2, 3, ecc...
+
+    /* Impacchettiamo la griglia in alto */
+    gtk_box_pack_start(GTK_BOX(main_container), grid, FALSE, FALSE, 0);
+
+    /* 2. PULSANTE "STAMPA ORA" AI PIEDI */
+    GtkWidget *btn_print_now = gtk_button_new_with_label("STAMPA ORA");
+    g_signal_connect(btn_print_now, "clicked", G_CALLBACK(on_print_selected), NULL);
+    
+    // Lo rendiamo speciale con la classe dei tuoi pulsanti oro
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_print_now), "suggested-action");
+    
+    // pack_end lo spinge in fondo
+    gtk_box_pack_end(GTK_BOX(main_container), btn_print_now, FALSE, FALSE, 0);
+
+    return main_container;
 }
 
 void on_config_button_clicked(GtkButton *button, gpointer window) {
