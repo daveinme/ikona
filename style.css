@@ -440,8 +440,9 @@ dialog label {
 
 /* ============ ICON BUTTONS ============ */
 #icon-button {
-    padding: 8px 12px;
-    min-height: 60px;
+    padding: 2px;
+    min-width: 40px;
+    min-height: 40px;
     background: linear-gradient(135deg, rgba(91, 95, 255, 0.05), rgba(91, 95, 255, 0.02));
     border: 1px solid #2B2B32;
     color: #A0A0A8;
@@ -494,7 +495,7 @@ dialog label {
 #icon-only-button {
     min-width: 40px;
     min-height: 40px;
-    padding: 8px;
+    padding: 4px;
     background-color: transparent;
     border: 1px solid transparent;
     color: #A0A0A8;

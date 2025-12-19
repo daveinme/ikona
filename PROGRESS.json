@@ -16,8 +16,19 @@
       "descrizione": "Main window massimizzata al startup dopo splash"
     },
     "icone": {
-      "status": "⏳ IN ATTESA",
-      "note": "Dipende da implementazione create_icon_button() nei sidebar"
+      "status": "✅ COMPLETATO",
+      "nota": "27 enum icone mappate, tutti pulsanti refactored",
+      "file": "icon_manager.c/h, style.css",
+      "completato": [
+        "Icon manager con 27 enum (13 RemixIcon + 14 Custom)",
+        "Navbar: Importa, Foto, Config con icone",
+        "Sidebar View: 9 pulsanti con icone",
+        "Sidebar Importa: Importa, Aggiorna con icone",
+        "Printer: Pulisci con icona",
+        "Paginazione: Frecce Left/Right con icone",
+        "Pulsanti quadrati 40x40px, padding ottimizzato",
+        "CSS style.css aggiornato per icon-button/icon-only-button"
+      ]
     },
     "palette_colori": {
       "status": "⏳ IN ATTESA",
@@ -27,21 +38,22 @@
   },
   "logica_e_funzionalita": {
     "stampa": {
-      "status": "⏳ IN PROGRESS - PROBLEMI APERTI",
+      "status": "✅ COMPLETATO",
       "file": "ikona.c, printer.c",
-      "descrizione": "Finestra stampa massimizzata dedicata funziona, ma logica stampa non completata",
+      "descrizione": "Stampa funzionale da inizio a fine con UI intuitiva",
       "completato": [
         "Rimosso tab stampa dalla UI principale",
-        "Pulsante 'Stampa Ora' sidebar apre finestra stampa massimizzata",
-        "Pulsante 'Stampa' sidebar aggiunge foto alla lista stampa",
-        "Finestra stampa mostra foto da stampare con selezione stampante"
+        "Pulsante 'Stampa' tab Foto apre finestra stampa massimizzata",
+        "Pulsante 'Stampa' tab Foto aggiunge foto selezionate alla lista stampa",
+        "Finestra stampa mostra foto con selezione stampante",
+        "Pulsante 'Stampa Tutto' implementato con dialog di conferma",
+        "Riepilogo prima stampa: 'Stampa X foto (Y copie totali)?'",
+        "Stampe inviate effettivamente al driver Windows",
+        "Toast notification finale con risultati in basso (3 secondi)"
       ],
       "da_risolvere": [
-        "Logica di stampa vera e propria (pulsante 'Stampa Tutto' nella finestra)",
-        "Log stampe giornaliere in JSON",
-        "Conferma dialog e progressione stampa"
-      ],
-      "nota": "Rinviato a prossima sessione"
+        "Log stampe giornaliere in JSON (rinviato)"
+      ]
     },
     "pannello_config": {
       "status": "⏳ IN ATTESA",
@@ -58,11 +70,13 @@
     "data": "2025-12-19",
     "completato": [
       "Punto 1: Splash screen + Main window massimizzata",
-      "Punto 2: Finestra stampa massimizzata dedicata"
+      "Punto 2: Finestra stampa massimizzata dedicata",
+      "Punto 3: Logica stampa completa (dialog riepilogo + toast notification)",
+      "Punto 4: Sistema icone completo (27 enum, tutti pulsanti refactored, 40x40px)"
     ],
     "rimandato": [
-      "Punto 3: Pannello config con 2 tab (prossima sessione)",
-      "Risoluzione problema stampa vera (prossima sessione)"
+      "Pannello config con 2 tab (prossima sessione)",
+      "Log stampe giornaliere in JSON (prossima sessione)"
     ]
   }
 }

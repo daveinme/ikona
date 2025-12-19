@@ -1,4 +1,5 @@
 #include "printer.h"
+#include "icon_manager.h"
 #include "gui_utils.h"
 #include <string.h>
 #include <stdlib.h>
@@ -401,9 +402,7 @@ GtkWidget* create_print_window(const char *icons_dir) {
     bottom_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_container_set_border_width(GTK_CONTAINER(bottom_box), 10);
 
-    char clean_icon_path[1024];
-    snprintf(clean_icon_path, sizeof(clean_icon_path), "%s/pulisci_print_icon.png", icons_dir);
-    clean_button = create_icon_button(clean_icon_path, "🗑 Pulisci");
+    clean_button = create_icon_only_button(ICON_TRASH, 20, "Pulisci");
     g_signal_connect(clean_button, "clicked", G_CALLBACK(on_remove_from_print_list), NULL);
     gtk_box_pack_start(GTK_BOX(bottom_box), clean_button, FALSE, FALSE, 0);
 

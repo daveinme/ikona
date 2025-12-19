@@ -14,19 +14,39 @@ static GHashTable *icon_cache = NULL;
 
 /* Mappa enum → filename */
 static const char* icon_filenames[] = {
-    [ICON_FOLDER_FILL] = "folder-fill.png",
-    [ICON_FOLDER_LINE] = "folder-line.png",
-    [ICON_FILE_IMAGE] = "file-image-line.png",
-    [ICON_GALLERY_UPLOAD_FILL] = "gallery-upload-fill.png",
-    [ICON_GALLERY_UPLOAD_LINE] = "gallery-upload-line.png",
-    [ICON_FLAG] = "flag-2-line.png",
-    [ICON_HOME_GEAR_FILL] = "home-gear-fill.png",
-    [ICON_HOME_GEAR_LINE] = "home-gear-line.png",
-    [ICON_PRINTER] = "printer-line.png",
-    [ICON_ARROW_LEFT] = "arrow-left-circle-line.png",
-    [ICON_ARROW_RIGHT] = "arrow-right-circle-line.png",
-    [ICON_ARROW_LEFT_FILL] = "arrow-left-circle-fill.png",
-    [ICON_ARROW_RIGHT_FILL] = "arrow-right-circle-fill.png",
+    /* RemixIcon (mappate a custom) */
+    [ICON_FOLDER_FILL] = "folder_icon.png",
+    [ICON_FOLDER_LINE] = "folder_icon.png",
+    [ICON_FILE_IMAGE] = "file_image_icon.png",
+    [ICON_GALLERY_UPLOAD_FILL] = "gallery_upload_icon.png",
+    [ICON_GALLERY_UPLOAD_LINE] = "gallery_upload_icon.png",
+    [ICON_FLAG] = "flag_icon.png",
+    [ICON_HOME_GEAR_FILL] = "home_gear_icon.png",
+    [ICON_HOME_GEAR_LINE] = "home_gear_icon.png",
+    [ICON_PRINTER] = "printer_icon.png",
+    [ICON_ARROW_LEFT] = "arrow_left_icon.png",
+    [ICON_ARROW_RIGHT] = "arrow_right_icon.png",
+    [ICON_ARROW_LEFT_FILL] = "arrow_left_fill_icon.png",
+    [ICON_ARROW_RIGHT_FILL] = "arrow_right_fill_icon.png",
+
+    /* Navbar Icons */
+    [ICON_IMPORTA] = "importa_icon.png",
+    [ICON_FOTO] = "camera_icon-icons.com_72364.png",
+    [ICON_STAMPA_NAVBAR] = "stampa_icon.png",
+    [ICON_CONFIG] = "config_icon.png",
+
+    /* Sidebar Importa */
+    [ICON_IMPORTA_SIDEBAR] = "importa_sidebar_icon.png",
+    [ICON_AGGIORNA] = "aggiorna_icon.png",
+
+    /* Sidebar View */
+    [ICON_SELEZIONA_TUTTO] = "seleziona_tutto_icon.png",
+    [ICON_DESELEZIONA] = "deseleziona_icon.png",
+    [ICON_EDITOR] = "editor_icon.png",
+    [ICON_STAMPA_VIEW] = "stampa_wiev_icon.png",
+    [ICON_MONITOR] = "monitor_icon.png",
+    [ICON_VIEW_ALL] = "tutte_icon.png",
+    [ICON_TRASH] = "pulisci_icon.png",
 };
 
 /* Genera chiave cache: icon_type_size */
@@ -125,12 +145,13 @@ GtkWidget* create_button_with_icon(IconType icon, const char *label, int icon_si
 
     button = gtk_button_new();
     gtk_widget_set_name(button, "icon-button");
+    gtk_widget_set_size_request(button, 40, 40);
 
-    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_widget_set_margin_start(box, 6);
-    gtk_widget_set_margin_end(box, 6);
-    gtk_widget_set_margin_top(box, 4);
-    gtk_widget_set_margin_bottom(box, 4);
+    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    gtk_widget_set_margin_start(box, 2);
+    gtk_widget_set_margin_end(box, 2);
+    gtk_widget_set_margin_top(box, 2);
+    gtk_widget_set_margin_bottom(box, 2);
 
     /* Icona */
     pixbuf = get_icon_pixbuf(icon, icon_size);
@@ -147,7 +168,7 @@ GtkWidget* create_button_with_icon(IconType icon, const char *label, int icon_si
         label_widget = gtk_label_new(label);
         gtk_label_set_justify(GTK_LABEL(label_widget), GTK_JUSTIFY_CENTER);
         gtk_label_set_line_wrap(GTK_LABEL(label_widget), TRUE);
-        gtk_label_set_max_width_chars(GTK_LABEL(label_widget), 12);
+        gtk_label_set_max_width_chars(GTK_LABEL(label_widget), 8);
         gtk_box_pack_start(GTK_BOX(box), label_widget, FALSE, FALSE, 0);
     }
 
@@ -158,12 +179,20 @@ GtkWidget* create_button_with_icon(IconType icon, const char *label, int icon_si
 GtkWidget* create_icon_only_button(IconType icon, int icon_size, const char *tooltip) {
     GtkWidget *button;
     GtkWidget *image_widget;
+    GtkWidget *box;
     GdkPixbuf *pixbuf;
 
     if (icon_size <= 0) icon_size = 24;
 
     button = gtk_button_new();
     gtk_widget_set_name(button, "icon-only-button");
+    gtk_widget_set_size_request(button, 40, 40);
+
+    box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_widget_set_margin_start(box, 3);
+    gtk_widget_set_margin_end(box, 3);
+    gtk_widget_set_margin_top(box, 3);
+    gtk_widget_set_margin_bottom(box, 3);
 
     pixbuf = get_icon_pixbuf(icon, icon_size);
     if (pixbuf) {
@@ -172,7 +201,10 @@ GtkWidget* create_icon_only_button(IconType icon, int icon_size, const char *too
         image_widget = gtk_label_new("❌");
     }
 
-    gtk_container_add(GTK_CONTAINER(button), image_widget);
+    gtk_widget_set_halign(image_widget, GTK_ALIGN_CENTER);
+    gtk_widget_set_valign(image_widget, GTK_ALIGN_CENTER);
+    gtk_box_pack_start(GTK_BOX(box), image_widget, TRUE, TRUE, 0);
+    gtk_container_add(GTK_CONTAINER(button), box);
 
     if (tooltip && strlen(tooltip) > 0) {
         gtk_widget_set_tooltip_text(button, tooltip);
