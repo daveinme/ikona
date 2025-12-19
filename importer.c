@@ -9,13 +9,72 @@
 extern GtkWidget *label_copy_status;
 extern GtkWidget *label_auto_photo_count;
 extern GtkWidget *grid_container;
+extern GtkWidget *import_progress_bar;
+extern GtkWidget *import_progress_bar_auto;
 extern char src_folder[512];
 extern char base_dst_folder[512];
 extern char view_folder[512];
 extern char sd_drive_letters[256];
 extern GtkWidget *global_stack;
+extern GtkWidget *main_window;
 extern void load_images_list(void);
 extern void display_page(void);
+extern void show_toast_notification(const char *message);
+
+/* Structure to track copy progress */
+typedef struct {
+    int total_files;
+    int copied_files;
+} CopyProgress;
+
+/* Count total image files recursively */
+static int count_image_files(const char *source_dir, int depth, int max_depth) {
+    DIR *dir;
+    struct dirent *entry;
+    int count = 0;
+    char src_path[4096];
+    const char *ext;
+    struct stat statbuf;
+
+    if (depth > max_depth) return 0;
+
+    dir = opendir(source_dir);
+    if (!dir) return 0;
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+        if (entry->d_name[0] == '.' ||
+            strcmp(entry->d_name, "System Volume Information") == 0 ||
+            strcmp(entry->d_name, "$RECYCLE.BIN") == 0 ||
+            strcmp(entry->d_name, "RECYCLER") == 0 ||
+            strcmp(entry->d_name, "RECYCLED") == 0 ||
+            g_ascii_strcasecmp(entry->d_name, "Thumbs.db") == 0) {
+            continue;
+        }
+
+        snprintf(src_path, sizeof(src_path), "%s%c%s", source_dir, G_DIR_SEPARATOR, entry->d_name);
+        if (stat(src_path, &statbuf) != 0) continue;
+
+        if (S_ISDIR(statbuf.st_mode)) {
+            count += count_image_files(src_path, depth + 1, max_depth);
+            continue;
+        }
+
+        ext = strrchr(entry->d_name, '.');
+        if (ext && (g_ascii_strcasecmp(ext, ".jpg") == 0 ||
+                    g_ascii_strcasecmp(ext, ".jpeg") == 0 ||
+                    g_ascii_strcasecmp(ext, ".png") == 0 ||
+                    g_ascii_strcasecmp(ext, ".bmp") == 0 ||
+                    g_ascii_strcasecmp(ext, ".gif") == 0 ||
+                    g_ascii_strcasecmp(ext, ".tiff") == 0 ||
+                    g_ascii_strcasecmp(ext, ".tif") == 0)) {
+            count++;
+        }
+    }
+
+    closedir(dir);
+    return count;
+}
 
 void on_select_src_folder(GtkButton *button, gpointer data) {
     GtkWidget *dialog = gtk_file_chooser_dialog_new(
@@ -58,7 +117,7 @@ void on_select_dst_folder(GtkButton *button, gpointer data) {
 }
 
 /* Recursive function to scan directories and copy images */
-static int scan_and_copy_images_internal(const char *source_dir, const char *dest_folder, int depth, int max_depth) {
+static int scan_and_copy_images_internal(const char *source_dir, const char *dest_folder, int depth, int max_depth, CopyProgress *progress, GtkWidget *progress_bar) {
     DIR *dir;
     struct dirent *entry;
     int count;
@@ -111,7 +170,7 @@ static int scan_and_copy_images_internal(const char *source_dir, const char *des
         /* If it's a directory, recurse into it */
         if (S_ISDIR(statbuf.st_mode)) {
             g_info("Scanning [depth %d]: %s", depth, entry->d_name);
-            count += scan_and_copy_images_internal(src_path, dest_folder, depth + 1, max_depth);
+            count += scan_and_copy_images_internal(src_path, dest_folder, depth + 1, max_depth, progress, progress_bar);
             continue;
         }
 
@@ -154,6 +213,20 @@ static int scan_and_copy_images_internal(const char *source_dir, const char *des
                     }
                     fclose(dst_file);
                     count++;
+
+                    /* Update progress */
+                    if (progress && progress_bar) {
+                        progress->copied_files++;
+                        double fraction = (double)progress->copied_files / progress->total_files;
+                        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progress_bar), fraction);
+                        char progress_text[64];
+                        snprintf(progress_text, sizeof(progress_text), "%d / %d",
+                               progress->copied_files, progress->total_files);
+                        gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress_bar), progress_text);
+                        /* Process GTK events to keep UI responsive */
+                        while (gtk_events_pending()) gtk_main_iteration();
+                    }
+
                     g_info("Copied: %s -> %s", entry->d_name, dst_path);
                 } else {
                     g_warning("Failed to create destination file: %s", dst_path);
@@ -171,13 +244,30 @@ static int scan_and_copy_images_internal(const char *source_dir, const char *des
 }
 
 /* Wrapper function with default max depth */
-static int scan_and_copy_images(const char *source_dir, const char *dest_folder) {
+static int scan_and_copy_images(const char *source_dir, const char *dest_folder, GtkWidget *progress_bar) {
     /* Maximum depth: 5 levels is enough for most camera structures
      * e.g., E:\DCIM\100MSDCF\2024\December\Photos = 5 levels
      */
     int max_depth = 5;
+    CopyProgress progress = {0, 0};
+
+    /* First pass: count total files */
     g_info("Starting recursive scan with max depth: %d", max_depth);
-    return scan_and_copy_images_internal(source_dir, dest_folder, 0, max_depth);
+    progress.total_files = count_image_files(source_dir, 0, max_depth);
+    g_info("Found %d image files to copy", progress.total_files);
+
+    if (progress.total_files == 0) {
+        return 0;
+    }
+
+    /* Initialize progress bar */
+    if (progress_bar) {
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progress_bar), 0.0);
+        gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress_bar), "0 / 0");
+    }
+
+    /* Second pass: copy files and update progress */
+    return scan_and_copy_images_internal(source_dir, dest_folder, 0, max_depth, &progress, progress_bar);
 }
 
 void on_copy_jpg_auto(GtkButton *button, gpointer data) {
@@ -191,16 +281,9 @@ void on_copy_jpg_auto(GtkButton *button, gpointer data) {
         return;
     }
 
-    if (strncmp(base_dst_folder, src_folder, strlen(src_folder)) == 0) {
-        GtkWidget *dialog;
-        dialog = gtk_message_dialog_new(NULL,
-                                       GTK_DIALOG_MODAL,
-                                       GTK_MESSAGE_ERROR,
-                                       GTK_BUTTONS_OK,
-                                       "La cartella di destinazione non può essere una sottocartella della sorgente!");
-        gtk_window_set_title(GTK_WINDOW(dialog), "Errore di importazione");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
+    // Blocca solo se destination è una VERA sottocartella (non se identiche)
+    if (strcmp(base_dst_folder, src_folder) != 0 && strncmp(base_dst_folder, src_folder, strlen(src_folder)) == 0) {
+        gtk_label_set_text(GTK_LABEL(label_copy_status), "❌ Destinazione non può essere sottocartella della sorgente!");
         return;
     }
 
@@ -222,27 +305,27 @@ void on_copy_jpg_auto(GtkButton *button, gpointer data) {
     gtk_label_set_text(GTK_LABEL(label_copy_status), "🔍 Scansione ricorsiva (max 5 livelli)...");
 
     /* Scan recursively and copy all images */
-    count = scan_and_copy_images(src_folder, import_folder);
-
-    GtkWidget *dialog;
-    dialog = gtk_message_dialog_new(NULL,
-                                   GTK_DIALOG_MODAL,
-                                   GTK_MESSAGE_INFO,
-                                   GTK_BUTTONS_OK,
-                                   "Importazione #%03d completata!\n%d immagini copiate in:\n%s",
-                                   import_num, count, import_folder);
-    gtk_window_set_title(GTK_WINDOW(dialog), "Importazione Completata");
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
+    count = scan_and_copy_images(src_folder, import_folder, import_progress_bar);
 
     g_info("Import #%03d completed. Copied %d images (recursive) to %s%c%03d", import_num, count, today_path, G_DIR_SEPARATOR, import_num);
+
+    // Show non-blocking notification
+    char notification[512];
+    snprintf(notification, sizeof(notification), "✓ Importazione #%03d completata!\n%d immagini copiate", import_num, count);
+    show_toast_notification(notification);
 
     // Auto-open newly imported photos in View tab
     strncpy(view_folder, import_folder, sizeof(view_folder) - 1);
     load_images_list();
     display_page();
     if (global_stack) {
-        gtk_stack_set_visible_child_name(GTK_STACK(global_stack), "import");
+        gtk_stack_set_visible_child_name(GTK_STACK(global_stack), "grid");
+    }
+
+    /* Reset progress bar */
+    if (import_progress_bar) {
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(import_progress_bar), 0.0);
+        gtk_progress_bar_set_text(GTK_PROGRESS_BAR(import_progress_bar), "0 / 0");
     }
 }
 
@@ -296,7 +379,7 @@ void on_import_sd_auto(GtkButton *button, gpointer data) {
     create_import_folder(import_folder);
 
     // Count and copy
-    count = scan_and_copy_images(sd_path, import_folder);
+    count = scan_and_copy_images(sd_path, import_folder, import_progress_bar_auto);
 
     snprintf(status, sizeof(status), "✓ Auto-Import #%03d completato!\n%d immagini copiate",
              import_num, count);
@@ -308,6 +391,12 @@ void on_import_sd_auto(GtkButton *button, gpointer data) {
     display_page();
     if (global_stack) {
         gtk_stack_set_visible_child_name(GTK_STACK(global_stack), "grid");
+    }
+
+    /* Reset progress bar */
+    if (import_progress_bar_auto) {
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(import_progress_bar_auto), 0.0);
+        gtk_progress_bar_set_text(GTK_PROGRESS_BAR(import_progress_bar_auto), "0 / 0");
     }
 }
 

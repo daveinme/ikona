@@ -11,6 +11,8 @@
 #include <windows.h>
 #endif
 
+GtkWidget *main_window = NULL;
+
 GtkWidget *label_copy_status;
 GtkWidget *grid_container;
 GtkWidget *page_label;
@@ -42,6 +44,8 @@ char default_printer[256] = "";  // Default printer name
 GtkWidget *global_stack = NULL;  // Stack per switchare tra tab
 GtkWidget *global_sidebar_stack = NULL;  // Stack per sidebar dinamico
 GtkWidget *import_spinner = NULL;  // Global spinner for import operations
+GtkWidget *import_progress_bar = NULL;  // Progress bar for manual imports
+GtkWidget *import_progress_bar_auto = NULL;  // Progress bar for auto imports
 char global_icons_dir[1024] = "";  // Global icons directory path
 
 
@@ -164,7 +168,8 @@ void on_edit_image_clicked(GtkButton *button, gpointer data) {
     if (selected_image_index != -1 && image_files[selected_image_index] != NULL) {
         create_photo_editor_window(image_files[selected_image_index], global_icons_dir);
     } else {
-        GtkWidget *dialog = gtk_message_dialog_new(NULL,
+        GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(button));
+        GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(toplevel),
                                        GTK_DIALOG_MODAL,
                                        GTK_MESSAGE_INFO, // Added message type
                                        GTK_BUTTONS_OK,
@@ -555,7 +560,7 @@ void on_drive_connected(GVolumeMonitor *monitor, GDrive *drive) {
                         g_info("Detected monitored SD card: %s", path);
 
                         /* Show confirmation dialog */
-                        dialog = gtk_message_dialog_new(NULL,
+                        dialog = gtk_message_dialog_new(GTK_WINDOW(main_window),
                             GTK_DIALOG_MODAL,
                             GTK_MESSAGE_QUESTION,
                             GTK_BUTTONS_YES_NO,
@@ -691,7 +696,8 @@ void on_add_to_print_list(GtkButton *button, gpointer data) {
     GList *l;
 
     if (selected_count == 0) {
-        GtkWidget *dialog = gtk_message_dialog_new(NULL,
+        GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(button));
+        GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(toplevel),
                                        GTK_DIALOG_MODAL,
                                        GTK_MESSAGE_WARNING,
                                        GTK_BUTTONS_OK,
@@ -774,7 +780,8 @@ void on_print_selected(GtkButton *button, gpointer data) {
     GtkWidget *dialog;
 
     if (!print_list) {
-        dialog = gtk_message_dialog_new(NULL,
+        GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(button));
+        dialog = gtk_message_dialog_new(GTK_WINDOW(toplevel),
                                        GTK_DIALOG_MODAL,
                                        GTK_MESSAGE_WARNING,
                                        GTK_BUTTONS_OK,
@@ -788,7 +795,8 @@ void on_print_selected(GtkButton *button, gpointer data) {
 
     printer_name = get_selected_printer_from_window();
     if (!printer_name || strlen(printer_name) == 0) {
-        dialog = gtk_message_dialog_new(NULL,
+        GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(button));
+        dialog = gtk_message_dialog_new(GTK_WINDOW(toplevel),
                                        GTK_DIALOG_MODAL,
                                        GTK_MESSAGE_ERROR,
                                        GTK_BUTTONS_OK,
@@ -809,7 +817,8 @@ void on_print_selected(GtkButton *button, gpointer data) {
     }
 
     /* Dialog di riepilogo con conferma */
-    dialog = gtk_message_dialog_new(NULL,
+    GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(button));
+    dialog = gtk_message_dialog_new(GTK_WINDOW(toplevel),
                                    GTK_DIALOG_MODAL,
                                    GTK_MESSAGE_QUESTION,
                                    GTK_BUTTONS_OK_CANCEL,
@@ -923,101 +932,6 @@ GtkWidget *create_empty_sidebar(void) {
     return sidebar;
 }
 
-/*
-GtkWidget *create_import_sidebar(void) {
-    GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-    gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
-    gtk_style_context_add_class(gtk_widget_get_style_context(sidebar), "sidebar");
-
-    GtkWidget *label = gtk_label_new("📥 Import");
-    gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
-    gtk_box_pack_start(GTK_BOX(sidebar), label, FALSE, FALSE, 0);
-
-    // Tabs: Manuale / Auto
-    GtkWidget *tabs_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    GtkWidget *btn_manuale = gtk_button_new_with_label("Manuale");
-    gtk_style_context_add_class(gtk_widget_get_style_context(btn_manuale), "flat");
-    gtk_box_pack_start(GTK_BOX(tabs_box), btn_manuale, TRUE, TRUE, 0);
-
-    GtkWidget *btn_auto = gtk_button_new_with_label("Auto");
-    gtk_style_context_add_class(gtk_widget_get_style_context(btn_auto), "flat");
-    gtk_box_pack_start(GTK_BOX(tabs_box), btn_auto, TRUE, TRUE, 0);
-
-    gtk_box_pack_start(GTK_BOX(sidebar), tabs_box, FALSE, FALSE, 0);
-
-    // Stack for Manuale/Auto content
-    GtkWidget *import_stack = gtk_stack_new();
-    gtk_stack_set_transition_type(GTK_STACK(import_stack), GTK_STACK_TRANSITION_TYPE_NONE);
-
-    // Manuale content
-    GtkWidget *manuale_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-    GtkWidget *lbl_src = gtk_label_new("Origine:");
-    gtk_box_pack_start(GTK_BOX(manuale_box), lbl_src, FALSE, FALSE, 0);
-    GtkWidget *btn_src = gtk_button_new_with_label("Sfoglia...");
-    g_signal_connect(btn_src, "clicked", G_CALLBACK(on_select_src_folder), NULL);
-    gtk_box_pack_start(GTK_BOX(manuale_box), btn_src, FALSE, FALSE, 0);
-
-    GtkWidget *lbl_dst = gtk_label_new("Destinazione:");
-    gtk_box_pack_start(GTK_BOX(manuale_box), lbl_dst, FALSE, FALSE, 0);
-    GtkWidget *btn_dst = gtk_button_new_with_label("Sfoglia...");
-    g_signal_connect(btn_dst, "clicked", G_CALLBACK(on_select_dst_folder), NULL);
-    gtk_box_pack_start(GTK_BOX(manuale_box), btn_dst, FALSE, FALSE, 0);
-
-    // Create spinner for import
-    if (!import_spinner) {
-        import_spinner = gtk_spinner_new();
-    }
-    gtk_box_pack_start(GTK_BOX(manuale_box), import_spinner, FALSE, FALSE, 0);
-
-    label_copy_status = gtk_label_new("Sorgente: ");
-    gtk_box_pack_start(GTK_BOX(manuale_box), label_copy_status, FALSE, FALSE, 0);
-
-    GtkWidget *btn_importa = create_icon_only_button(ICON_IMPORTA_SIDEBAR, 20, "Importa");
-    g_signal_connect(btn_importa, "clicked", G_CALLBACK(on_import_button_clicked), import_spinner);
-    gtk_box_pack_end(GTK_BOX(manuale_box), btn_importa, FALSE, FALSE, 0);
-
-    gtk_stack_add_named(GTK_STACK(import_stack), manuale_box, "manuale");
-
-    // Auto content
-    GtkWidget *auto_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-
-    // Label showing number of photos to import
-    label_auto_photo_count = gtk_label_new("0 Foto da importare");
-    gtk_style_context_add_class(gtk_widget_get_style_context(label_auto_photo_count), "info");
-    gtk_box_pack_start(GTK_BOX(auto_box), label_auto_photo_count, FALSE, FALSE, 0);
-
-    // Import button
-    GtkWidget *btn_auto_import = create_icon_only_button(ICON_IMPORTA_SIDEBAR, 20, "Importa");
-    gtk_widget_set_size_request(btn_auto_import, -1, 50);
-    g_signal_connect(btn_auto_import, "clicked", G_CALLBACK(on_copy_jpg_auto), NULL);
-    gtk_box_pack_start(GTK_BOX(auto_box), btn_auto_import, FALSE, FALSE, 0);
-
-    // Progress bar (hidden until import starts)
-    GtkWidget *progress_bar = gtk_progress_bar_new();
-    gtk_progress_bar_set_text(GTK_PROGRESS_BAR(progress_bar), "Importazione...");
-    gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(progress_bar), TRUE);
-    gtk_widget_set_visible(progress_bar, FALSE);
-    gtk_box_pack_start(GTK_BOX(auto_box), progress_bar, FALSE, FALSE, 0);
-
-    // Update/Scan button
-    GtkWidget *btn_scan = create_icon_only_button(ICON_AGGIORNA, 20, "Aggiorna SD");
-    g_signal_connect(btn_scan, "clicked", G_CALLBACK(on_scan_sd_for_auto), NULL);
-    gtk_box_pack_end(GTK_BOX(auto_box), btn_scan, FALSE, FALSE, 0);
-
-    gtk_stack_add_named(GTK_STACK(import_stack), auto_box, "auto");
-
-    gtk_box_pack_start(GTK_BOX(sidebar), import_stack, TRUE, TRUE, 0);
-
-    // Save reference to import stack for tab switching
-    import_sidebar_stack = import_stack;
-
-    // Connect tab buttons
-    g_signal_connect(btn_manuale, "clicked", G_CALLBACK(on_import_manual_tab), NULL);
-    g_signal_connect(btn_auto, "clicked", G_CALLBACK(on_import_auto_tab), NULL);
-
-    return sidebar;
-}*/
-
 GtkWidget *create_import_sidebar(void) {
     /* 1. Contenitore principale */
     GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -1025,7 +939,7 @@ GtkWidget *create_import_sidebar(void) {
     gtk_style_context_add_class(gtk_widget_get_style_context(sidebar), "sidebar");
 
     /* 2. Titolo */
-    GtkWidget *label = gtk_label_new("📥 IMPORT");
+    GtkWidget *label = gtk_label_new("Importa Foto");
     gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
     gtk_box_pack_start(GTK_BOX(sidebar), label, FALSE, FALSE, 10);
 
@@ -1066,6 +980,11 @@ GtkWidget *create_import_sidebar(void) {
     label_copy_status = gtk_label_new("In attesa...");
     gtk_box_pack_start(GTK_BOX(manuale_box), label_copy_status, FALSE, FALSE, 0);
 
+    import_progress_bar = gtk_progress_bar_new();
+    gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(import_progress_bar), TRUE);
+    gtk_widget_set_margin_top(import_progress_bar, 10);
+    gtk_box_pack_start(GTK_BOX(manuale_box), import_progress_bar, FALSE, FALSE, 0);
+
     gtk_stack_add_named(GTK_STACK(import_stack), manuale_box, "manuale");
 
     /* --- CONTENUTO AUTO --- */
@@ -1076,6 +995,11 @@ GtkWidget *create_import_sidebar(void) {
     GtkWidget *btn_scan = create_icon_only_button(ICON_AGGIORNA, 20, "Aggiorna SD");
     g_signal_connect(btn_scan, "clicked", G_CALLBACK(on_scan_sd_for_auto), NULL);
     gtk_box_pack_start(GTK_BOX(auto_box), btn_scan, FALSE, FALSE, 0);
+
+    import_progress_bar_auto = gtk_progress_bar_new();
+    gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(import_progress_bar_auto), TRUE);
+    gtk_widget_set_margin_top(import_progress_bar_auto, 10);
+    gtk_box_pack_start(GTK_BOX(auto_box), import_progress_bar_auto, FALSE, FALSE, 0);
 
     gtk_stack_add_named(GTK_STACK(import_stack), auto_box, "auto");
 
@@ -1104,62 +1028,6 @@ void on_clear_view_clicked(GtkButton *button, gpointer data) {
     strcpy(view_folder, "");
     display_page();
 }
-/* Questo è quello buono 
-GtkWidget *create_view_sidebar(void) {
-    GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-    gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
-    gtk_style_context_add_class(gtk_widget_get_style_context(sidebar), "sidebar");
-
-    GtkWidget *label = gtk_label_new("Libreria Foto");
-    gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
-    gtk_box_pack_start(GTK_BOX(sidebar), label, FALSE, FALSE, 0);
-
-    GtkWidget *btn_folder = create_icon_only_button(ICON_FOLDER_FILL, 20, "Apri...");
-    g_signal_connect(btn_folder, "clicked", G_CALLBACK(on_select_view_folder), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_folder, FALSE, FALSE, 0);
-
-    GtkWidget *btn_clear_view = create_icon_only_button(ICON_TRASH, 20, "Pulisci");
-    g_signal_connect(btn_clear_view, "clicked", G_CALLBACK(on_clear_view_clicked), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_clear_view, FALSE, FALSE, 0);
-
-    GtkWidget *separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-    gtk_box_pack_start(GTK_BOX(sidebar), separator, FALSE, FALSE, 0);
-
-    GtkWidget *btn_select_all = create_icon_only_button(ICON_SELEZIONA_TUTTO, 20, "Seleziona Tutto");
-    g_signal_connect(btn_select_all, "clicked", G_CALLBACK(on_select_all), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_select_all, FALSE, FALSE, 0);
-
-    GtkWidget *btn_deselect_all = create_icon_only_button(ICON_DESELEZIONA, 20, "Deseleziona Tutto");
-    g_signal_connect(btn_deselect_all, "clicked", G_CALLBACK(on_deselect_all), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_deselect_all, FALSE, FALSE, 0);
-
-    GtkWidget *btn_show_selected = create_icon_only_button(ICON_AGGIORNA, 20, "Aggiorna");
-    g_signal_connect(btn_show_selected, "clicked", G_CALLBACK(on_show_selected_only), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_show_selected, FALSE, FALSE, 0);
-
-    GtkWidget *btn_show_all = create_icon_only_button(ICON_VIEW_ALL, 20, "Tutte");
-    g_signal_connect(btn_show_all, "clicked", G_CALLBACK(on_show_all), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_show_all, FALSE, FALSE, 0);
-    
-    GtkWidget *btn_edit = create_icon_only_button(ICON_EDITOR, 20, "Modifica");
-    g_signal_connect(btn_edit, "clicked", G_CALLBACK(on_edit_image_clicked), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_edit, FALSE, FALSE, 0);
-
-    separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-    gtk_box_pack_start(GTK_BOX(sidebar), separator, FALSE, FALSE, 0);
-
-    GtkWidget *btn_secondary = create_icon_only_button(ICON_MONITOR, 20, "Monitor Cliente");
-    g_signal_connect(btn_secondary, "clicked", G_CALLBACK(on_open_secondary_viewer), NULL);
-    gtk_box_pack_start(GTK_BOX(sidebar), btn_secondary, FALSE, FALSE, 0);
-
-    GtkWidget *btn_print = create_icon_only_button(ICON_STAMPA_VIEW, 20, "Stampa");
-    g_signal_connect(btn_print, "clicked", G_CALLBACK(on_print_button_clicked), NULL);
-    gtk_box_pack_end(GTK_BOX(sidebar), btn_print, FALSE, FALSE, 0);
-
-    return sidebar;
-}
-*/
-
 GtkWidget *create_view_sidebar(void) {
     /* Contenitore principale verticale */
     GtkWidget *main_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -1230,29 +1098,6 @@ GtkWidget *create_view_sidebar(void) {
     return main_container;
 }
 
-/* Quello vecchio
-GtkWidget *create_print_sidebar(void) {
-    GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
-    gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
-    gtk_style_context_add_class(gtk_widget_get_style_context(sidebar), "sidebar");
-
-    GtkWidget *label = gtk_label_new("🖨 Print");
-    gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
-    gtk_box_pack_start(GTK_BOX(sidebar), label, FALSE, FALSE, 0);
-
-    GtkWidget *lbl_queue = gtk_label_new("Coda di Stampa");
-    gtk_box_pack_start(GTK_BOX(sidebar), lbl_queue, FALSE, FALSE, 0);
-
-    GtkWidget *btn_print_now = gtk_button_new_with_label("Stampa Ora");
-    g_signal_connect(btn_print_now, "clicked", G_CALLBACK(on_print_selected), NULL);
-    gtk_box_pack_end(GTK_BOX(sidebar), btn_print_now, FALSE, FALSE, 0);
-
-    return sidebar;
-}*/
-
-/* * Funzione: create_print_sidebar
- * Layout: GtkGrid per info e GtkBox per ancoraggio pulsante in basso
- */
 GtkWidget *create_print_sidebar(void) {
     /* Contenitore principale verticale */
     GtkWidget *main_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -1273,9 +1118,6 @@ GtkWidget *create_print_sidebar(void) {
     GtkWidget *lbl_queue = gtk_label_new("Coda di Stampa");
     gtk_widget_set_halign(lbl_queue, GTK_ALIGN_START); // Allinea a sinistra
     gtk_grid_attach(GTK_GRID(grid), lbl_queue, 0, 1, 2, 1);
-
-    // Qui in futuro potresti aggiungere altri widget (es. scelta formato)
-    // riga 2, 3, ecc...
 
     /* Impacchettiamo la griglia in alto */
     gtk_box_pack_start(GTK_BOX(main_container), grid, FALSE, FALSE, 0);
@@ -1391,17 +1233,17 @@ int main(int argc, char *argv[]) {
     GtkWidget *header_bar, *stack, *main_vbox, *tabs_box;
     GtkWidget *btn_config, *btn_import, *btn_view;
 
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(window), 1200, 800);
-    g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    main_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_default_size(GTK_WINDOW(main_window), 1200, 800);
+    g_signal_connect(main_window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
     header_bar = gtk_header_bar_new();
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(header_bar), TRUE);
     gtk_header_bar_set_title(GTK_HEADER_BAR(header_bar), "Ikona - Image Manager");
-    gtk_window_set_titlebar(GTK_WINDOW(window), header_bar);
+    gtk_window_set_titlebar(GTK_WINDOW(main_window), header_bar);
 
     main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_container_add(GTK_CONTAINER(window), main_vbox);
+    gtk_container_add(GTK_CONTAINER(main_window), main_vbox);
 
     // NAVBAR
     tabs_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -1423,7 +1265,7 @@ int main(int argc, char *argv[]) {
     btn_config = create_button_with_icon(ICON_CONFIG, "Config", 37);
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_config), "flat");
     gtk_button_set_relief(GTK_BUTTON(btn_config), GTK_RELIEF_NONE);
-    g_signal_connect(btn_config, "clicked", G_CALLBACK(on_config_button_clicked), window);
+    g_signal_connect(btn_config, "clicked", G_CALLBACK(on_config_button_clicked), main_window);
     gtk_box_pack_start(GTK_BOX(tabs_box), btn_config, FALSE, FALSE, 0);
 
     // MAIN CONTENT AREA with sidebar + stack
@@ -1491,7 +1333,7 @@ int main(int argc, char *argv[]) {
     /* Show main window after 2 seconds */
     SplashData *splash_data = g_malloc(sizeof(SplashData));
     splash_data->splash_window = splash_window;
-    splash_data->main_window = window;
+    splash_data->main_window = main_window;
 
     g_timeout_add(2000, splash_timeout_callback, splash_data);
 
