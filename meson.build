@@ -16,7 +16,9 @@ common_sources = [
   'utils.c',
   'printer.c',
   'icon_manager.c',
-  'editor.c'
+  'editor.c',
+  'print_log.c',
+  'gui_utils.c'
 ]
 
 if host_machine.system() == 'windows'

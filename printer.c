@@ -1,8 +1,10 @@
 #include "printer.h"
+#include "gui_utils.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <glib.h>
+#include <gtk/gtk.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -184,37 +186,21 @@ int print_file(const char *printer_name, const char *file_path) {
     g_info("Attesa 2 secondi prima di inviare il job (per stampanti WiFi)");
     Sleep(2000);
 
-    /* Metodo 1: ShellExecute con "printto" - NESSUN DIALOG */
-    g_info("Tentativo 1 - ShellExecute printto senza dialog");
-    g_info("Nome stampante esatto: '%s'", printer_name);
-    g_info("File: '%s'", abs_path);
-
-    /* Usa ShellExecute con verbo "printto" con solo il nome della stampante */
-    exec_result = ShellExecute(NULL, "printto", abs_path, (LPCSTR)printer_name, NULL, SW_HIDE);
-
-    g_info("ShellExecute printto risultato: %p", exec_result);
-
-    if ((intptr_t)exec_result > 32) {
-        g_info("Stampa inviata in coda con successo a: %s", printer_name);
-        Sleep(1000);  /* Attesa per assicurare che il job arrivi alla coda */
-        return 0;
-    }
-
-    /* Se il primo metodo fallisce, prova con "print" */
-    g_warning("ShellExecute printto fallito (errore %p), provo print...", exec_result);
+    /* Usa ShellExecute con verbo "print" */
+    g_info("ShellExecute print: printer='%s', file='%s'", printer_name, abs_path);
 
     exec_result = ShellExecute(NULL, "print", abs_path, NULL, NULL, SW_HIDE);
 
     g_info("ShellExecute print risultato: %p", exec_result);
 
     if ((intptr_t)exec_result > 32) {
-        g_info("Stampa inviata con successo tramite print");
+        g_info("Stampa inviata con successo a: %s", printer_name);
         Sleep(1000);
         return 0;
     }
 
-    /* Se entrambi falliscono */
-    g_warning("Tutti i metodi falliti (ultimo errore %p)", exec_result);
+    /* Se fallisce */
+    g_warning("ShellExecute fallito (errore %p)", exec_result);
     return -1;
 
 #else
@@ -231,4 +217,216 @@ int print_file(const char *printer_name, const char *file_path) {
     g_info("Print job sent successfully to printer: %s for file: %s", printer_name, file_path);
     return 0;
 #endif
+}
+
+/* External variables from ikona.c */
+extern GList *print_list;
+extern GtkWidget *print_grid_container;
+extern Printer *available_printers;
+extern int printer_count;
+extern char default_printer[];
+
+extern void on_remove_from_print_list(GtkButton *button, gpointer data);
+extern void on_print_selected(GtkButton *button, gpointer data);
+extern void refresh_print_grid(void);
+
+static GtkWidget *print_window = NULL;
+static GtkWidget *printer_combo_box = NULL;
+static GtkWidget *print_grid_container_local = NULL;
+
+static void on_print_window_destroyed(GtkWidget *widget, gpointer data) {
+    print_window = NULL;
+    printer_combo_box = NULL;
+    print_grid_container_local = NULL;
+}
+
+static void refresh_print_grid_local(void) {
+    GtkWidget *grid;
+    GList *l;
+    int row, col;
+
+    if (!print_grid_container_local || !GTK_IS_CONTAINER(print_grid_container_local)) {
+        return;
+    }
+
+    /* Pulisci container */
+    gtk_container_foreach(GTK_CONTAINER(print_grid_container_local),
+                         (GtkCallback)gtk_widget_destroy, NULL);
+
+    if (g_list_length(print_list) == 0) {
+        GtkWidget *empty_label = gtk_label_new("Nessuna foto in lista stampa.\nAggiungi foto dalla tab View.");
+        gtk_box_pack_start(GTK_BOX(print_grid_container_local), empty_label, TRUE, TRUE, 0);
+        if (GTK_IS_WIDGET(print_grid_container_local)) {
+            gtk_widget_show_all(print_grid_container_local);
+        }
+        return;
+    }
+
+    grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 15);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 15);
+    gtk_container_set_border_width(GTK_CONTAINER(grid), 15);
+    gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
+
+    row = 0;
+    col = 0;
+
+    for (l = print_list; l != NULL; l = l->next) {
+        PrintItem *item;
+        GtkWidget *card;
+        GtkWidget *vbox;
+        GtkWidget *thumbnail;
+        GtkWidget *label;
+        GtkWidget *copies_hbox;
+        GtkWidget *copies_label;
+        GError *error;
+        GdkPixbuf *pixbuf;
+
+        item = (PrintItem *)l->data;
+
+        card = gtk_frame_new(NULL);
+        gtk_frame_set_shadow_type(GTK_FRAME(card), GTK_SHADOW_ETCHED_IN);
+
+        vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+        gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+
+        error = NULL;
+        pixbuf = gdk_pixbuf_new_from_file_at_scale(item->path, 150, 150, TRUE, &error);
+        if (pixbuf) {
+            thumbnail = gtk_image_new_from_pixbuf(pixbuf);
+            g_object_unref(pixbuf);
+        } else {
+            thumbnail = gtk_label_new("📷");
+            if (error) g_error_free(error);
+        }
+        gtk_box_pack_start(GTK_BOX(vbox), thumbnail, FALSE, FALSE, 0);
+
+        label = gtk_label_new(g_path_get_basename(item->path));
+        gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_MIDDLE);
+        gtk_label_set_max_width_chars(GTK_LABEL(label), 20);
+        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
+
+        copies_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+        gtk_widget_set_halign(copies_hbox, GTK_ALIGN_CENTER);
+
+        copies_label = gtk_label_new("Copie:");
+        gtk_box_pack_start(GTK_BOX(copies_hbox), copies_label, FALSE, FALSE, 0);
+
+        item->spin_button = gtk_spin_button_new_with_range(1, 99, 1);
+        gtk_spin_button_set_value(GTK_SPIN_BUTTON(item->spin_button), 1);
+        gtk_widget_set_size_request(item->spin_button, 70, -1);
+        gtk_box_pack_start(GTK_BOX(copies_hbox), item->spin_button, FALSE, FALSE, 0);
+
+        gtk_box_pack_start(GTK_BOX(vbox), copies_hbox, FALSE, FALSE, 0);
+
+        gtk_container_add(GTK_CONTAINER(card), vbox);
+        gtk_grid_attach(GTK_GRID(grid), card, col, row, 1, 1);
+
+        col++;
+        if (col >= 3) {
+            col = 0;
+            row++;
+        }
+    }
+
+    gtk_box_pack_start(GTK_BOX(print_grid_container_local), grid, TRUE, TRUE, 0);
+
+    if (GTK_IS_WIDGET(print_grid_container_local)) {
+        gtk_widget_show_all(print_grid_container_local);
+    }
+}
+
+GtkWidget* create_print_window(const char *icons_dir) {
+    GtkWidget *main_vbox, *label_title, *scrolled_window, *print_button, *clean_button;
+    GtkWidget *printer_label, *printer_hbox, *bottom_box;
+    int i;
+
+    if (print_window) {
+        gtk_window_present(GTK_WINDOW(print_window));
+        return print_window;
+    }
+
+    print_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(print_window), "Ikona - Stampa");
+    gtk_window_set_default_size(GTK_WINDOW(print_window), 1000, 700);
+    gtk_window_set_position(GTK_WINDOW(print_window), GTK_WIN_POS_CENTER);
+    g_signal_connect(print_window, "destroy", G_CALLBACK(on_print_window_destroyed), NULL);
+
+    main_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(main_vbox), 20);
+    gtk_container_add(GTK_CONTAINER(print_window), main_vbox);
+
+    label_title = gtk_label_new("Stampa Immagini");
+    gtk_box_pack_start(GTK_BOX(main_vbox), label_title, FALSE, FALSE, 0);
+
+    /* Selezione stampante */
+    printer_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    gtk_box_pack_start(GTK_BOX(main_vbox), printer_hbox, FALSE, FALSE, 0);
+
+    printer_label = gtk_label_new("Stampante:");
+    gtk_box_pack_start(GTK_BOX(printer_hbox), printer_label, FALSE, FALSE, 0);
+
+    printer_combo_box = gtk_combo_box_text_new();
+    available_printers = get_available_printers(&printer_count);
+    if (available_printers && printer_count > 0) {
+        int default_idx = 0;
+        for (i = 0; i < printer_count; i++) {
+            gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(printer_combo_box),
+                                     available_printers[i].name,
+                                     available_printers[i].display_name);
+            /* Track index of default printer */
+            if (strlen(default_printer) > 0 && strcmp(available_printers[i].name, default_printer) == 0) {
+                default_idx = i;
+            }
+        }
+        gtk_combo_box_set_active(GTK_COMBO_BOX(printer_combo_box), default_idx);
+    } else {
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(printer_combo_box), "none", "Nessuna stampante trovata");
+        gtk_combo_box_set_active(GTK_COMBO_BOX(printer_combo_box), 0);
+        gtk_widget_set_sensitive(printer_combo_box, FALSE);
+    }
+    gtk_box_pack_start(GTK_BOX(printer_hbox), printer_combo_box, TRUE, TRUE, 0);
+
+    /* Griglia per le foto in stampa - CREA NUOVO CONTAINER LOCALE */
+    print_grid_container_local = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+    scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled_window),
+                                   GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_vexpand(scrolled_window, TRUE);
+    gtk_container_add(GTK_CONTAINER(scrolled_window), print_grid_container_local);
+    gtk_box_pack_start(GTK_BOX(main_vbox), scrolled_window, TRUE, TRUE, 0);
+
+    /* Bottom bar con pulsanti */
+    bottom_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(bottom_box), 10);
+
+    char clean_icon_path[1024];
+    snprintf(clean_icon_path, sizeof(clean_icon_path), "%s/pulisci_print_icon.png", icons_dir);
+    clean_button = create_icon_button(clean_icon_path, "🗑 Pulisci");
+    g_signal_connect(clean_button, "clicked", G_CALLBACK(on_remove_from_print_list), NULL);
+    gtk_box_pack_start(GTK_BOX(bottom_box), clean_button, FALSE, FALSE, 0);
+
+    print_button = gtk_button_new_with_label("🖨 Stampa Tutto");
+    g_signal_connect(print_button, "clicked", G_CALLBACK(on_print_selected), NULL);
+    gtk_box_pack_end(GTK_BOX(bottom_box), print_button, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(main_vbox), bottom_box, FALSE, FALSE, 0);
+
+    gtk_widget_show_all(print_window);
+    refresh_print_grid_local();
+
+    return print_window;
+}
+
+const char* get_selected_printer_from_window(void) {
+    if (!printer_combo_box) return NULL;
+    return gtk_combo_box_get_active_id(GTK_COMBO_BOX(printer_combo_box));
+}
+
+void refresh_print_window_grid(void) {
+    /* Aggiorna solo se la finestra stampa è aperta */
+    if (print_window && print_grid_container_local) {
+        refresh_print_grid_local();
+    }
 }

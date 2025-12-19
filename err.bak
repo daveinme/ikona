@@ -1,0 +1,27 @@
+Continua dare errori nonostante la stampa venga inviata
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:04.294: gtk_container_foreach: assertion 'GTK_IS_CONTAINER (container)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:04.398: gtk_container_add: assertion 'GTK_IS_CONTAINER (container)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:04.398: gtk_widget_show_all: assertion 'GTK_IS_WIDGET (widget)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:40.754: gtk_container_foreach: assertion 'GTK_IS_CONTAINER (container)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:40.755: gtk_box_pack: assertion 'GTK_IS_BOX (box)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:40.755: gtk_widget_show_all: assertion 'GTK_IS_WIDGET (widget)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:52.623: gtk_container_foreach: assertion 'GTK_IS_CONTAINER (container)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:52.680: gtk_container_add: assertion 'GTK_IS_CONTAINER (container)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:34:52.680: gtk_widget_show_all: assertion 'GTK_IS_WIDGET (widget)' failed
+
+** (ikona.exe:30552): WARNING **: 00:35:15.052: ShellExecute printto fallito (errore 000000000000001f), provo print...
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:35:16.078: gtk_container_foreach: assertion 'GTK_IS_CONTAINER (container)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:35:16.078: gtk_box_pack: assertion 'GTK_IS_BOX (box)' failed
+
+(ikona.exe:30552): Gtk-CRITICAL **: 00:35:16.078: gtk_widget_show_all: assertion 'GTK_IS_WIDGET (widget)' failed

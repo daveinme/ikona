@@ -4,16 +4,12 @@
 #include "printer.h"
 #include "icon_manager.h"
 #include "editor.h"
+#include "print_log.h"
+#include <string.h>
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
-
-typedef struct {
-    char *path;
-    int copies;
-    GtkWidget *spin_button;
-} PrintItem;
 
 GtkWidget *label_copy_status;
 GtkWidget *grid_container;
@@ -41,10 +37,12 @@ GtkWidget *print_grid_container = NULL;
 GtkWidget *printer_combo_box = NULL;
 Printer *available_printers = NULL;
 int printer_count = 0;
+char default_printer[256] = "";  // Default printer name
 
 GtkWidget *global_stack = NULL;  // Stack per switchare tra tab
 GtkWidget *global_sidebar_stack = NULL;  // Stack per sidebar dinamico
 GtkWidget *import_spinner = NULL;  // Global spinner for import operations
+char global_icons_dir[1024] = "";  // Global icons directory path
 
 
 GtkWidget *create_view_page(GtkWidget *window);
@@ -75,6 +73,51 @@ extern GtkWidget *secondary_viewer_window;
 extern void secondary_viewer_display_page(void);
 extern GtkWidget *create_secondary_viewer_window(void);
 
+/* Toast notification per avvisi standard */
+static gboolean toast_timeout(gpointer data) {
+    GtkWidget *toast = (GtkWidget *)data;
+    gtk_widget_destroy(toast);
+    return FALSE;
+}
+
+void show_toast_notification(const char *message) {
+    GtkWidget *toast_window = gtk_window_new(GTK_WINDOW_POPUP);
+    gtk_window_set_decorated(GTK_WINDOW(toast_window), FALSE);
+    gtk_window_set_keep_above(GTK_WINDOW(toast_window), TRUE);
+    gtk_widget_set_opacity(toast_window, 0.95);
+
+    GtkWidget *label = gtk_label_new(message);
+    gtk_widget_set_margin_top(label, 10);
+    gtk_widget_set_margin_bottom(label, 10);
+    gtk_widget_set_margin_start(label, 20);
+    gtk_widget_set_margin_end(label, 20);
+
+    gtk_container_add(GTK_CONTAINER(toast_window), label);
+    gtk_widget_show_all(toast_window);
+
+    /* Posiziona in basso al centro */
+    GdkDisplay *display = gdk_display_get_default();
+    if (display) {
+        GdkMonitor *monitor = gdk_display_get_primary_monitor(display);
+        if (monitor) {
+            GdkRectangle geometry;
+            gdk_monitor_get_geometry(monitor, &geometry);
+            gtk_window_move(GTK_WINDOW(toast_window),
+                            geometry.x + (geometry.width / 2) - 150,
+                            geometry.y + geometry.height - 100);
+        }
+    }
+
+    /* Scompare dopo 3 secondi */
+    g_timeout_add(3000, toast_timeout, toast_window);
+}
+
+void on_print_button_clicked(GtkButton *button, gpointer data) {
+    on_add_to_print_list(button, data);
+    GtkWidget *print_window = create_print_window(global_icons_dir);
+    gtk_window_maximize(GTK_WINDOW(print_window));
+}
+
 void on_tab_clicked(GtkButton *button, gpointer tab_name) {
     const char *tab = (const char *)tab_name;
 
@@ -83,9 +126,7 @@ void on_tab_clicked(GtkButton *button, gpointer tab_name) {
     }
 
     if (global_stack) {
-        if (strcmp(tab, "print") == 0) {
-            gtk_stack_set_visible_child_name(GTK_STACK(global_stack), "print");
-        } else if (strcmp(tab, "config") != 0) {
+        if (strcmp(tab, "config") != 0) {
             gtk_stack_set_visible_child_name(GTK_STACK(global_stack), "grid");
         }
     }
@@ -121,7 +162,7 @@ void on_open_secondary_viewer(GtkButton *button, gpointer data) {
 
 void on_edit_image_clicked(GtkButton *button, gpointer data) {
     if (selected_image_index != -1 && image_files[selected_image_index] != NULL) {
-        create_photo_editor_window(image_files[selected_image_index]);
+        create_photo_editor_window(image_files[selected_image_index], global_icons_dir);
     } else {
         GtkWidget *dialog = gtk_message_dialog_new(NULL,
                                        GTK_DIALOG_MODAL,
@@ -639,95 +680,9 @@ GtkWidget *create_print_page() {
 
 
 void refresh_print_grid(void) {
-    GtkWidget *grid;
-    GList *l;
-    int row, col;
-
-    /* Pulisci container */
-    gtk_container_foreach(GTK_CONTAINER(print_grid_container),
-                         (GtkCallback)gtk_widget_destroy, NULL);
-
-    if (g_list_length(print_list) == 0) {
-        GtkWidget *empty_label = gtk_label_new("Nessuna foto in lista stampa.\nAggiungi foto dalla tab View.");
-        gtk_box_pack_start(GTK_BOX(print_grid_container), empty_label, TRUE, TRUE, 0);
-        gtk_widget_show_all(print_grid_container);
-        return;
-    }
-
-    /* Crea griglia 3 colonne */
-    grid = gtk_grid_new();
-    gtk_grid_set_row_spacing(GTK_GRID(grid), 15);
-    gtk_grid_set_column_spacing(GTK_GRID(grid), 15);
-    gtk_container_set_border_width(GTK_CONTAINER(grid), 15);
-    gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
-
-    row = 0;
-    col = 0;
-
-    for (l = print_list; l != NULL; l = l->next) {
-        PrintItem *item;
-        GtkWidget *card;
-        GtkWidget *vbox;
-        GtkWidget *thumbnail;
-        GtkWidget *label;
-        GtkWidget *copies_hbox;
-        GtkWidget *copies_label;
-        GError *error;
-        GdkPixbuf *pixbuf;
-
-        item = (PrintItem *)l->data;
-
-        /* Card per ogni foto */
-        card = gtk_frame_new(NULL);
-        gtk_frame_set_shadow_type(GTK_FRAME(card), GTK_SHADOW_ETCHED_IN);
-
-        vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-        gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
-
-        /* Thumbnail 150x150 */
-        error = NULL;
-        pixbuf = gdk_pixbuf_new_from_file_at_scale(item->path, 150, 150, TRUE, &error);
-        if (pixbuf) {
-            thumbnail = gtk_image_new_from_pixbuf(pixbuf);
-            g_object_unref(pixbuf);
-        } else {
-            thumbnail = gtk_label_new("📷");
-            if (error) g_error_free(error);
-        }
-        gtk_box_pack_start(GTK_BOX(vbox), thumbnail, FALSE, FALSE, 0);
-
-        /* Nome file */
-        label = gtk_label_new(g_path_get_basename(item->path));
-        gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_MIDDLE);
-        gtk_label_set_max_width_chars(GTK_LABEL(label), 20);
-        gtk_box_pack_start(GTK_BOX(vbox), label, FALSE, FALSE, 0);
-
-        /* Copie */
-        copies_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-        gtk_widget_set_halign(copies_hbox, GTK_ALIGN_CENTER);
-
-        copies_label = gtk_label_new("Copie:");
-        gtk_box_pack_start(GTK_BOX(copies_hbox), copies_label, FALSE, FALSE, 0);
-
-        item->spin_button = gtk_spin_button_new_with_range(1, 99, 1);
-        gtk_spin_button_set_value(GTK_SPIN_BUTTON(item->spin_button), 1);
-        gtk_widget_set_size_request(item->spin_button, 70, -1);
-        gtk_box_pack_start(GTK_BOX(copies_hbox), item->spin_button, FALSE, FALSE, 0);
-
-        gtk_box_pack_start(GTK_BOX(vbox), copies_hbox, FALSE, FALSE, 0);
-
-        gtk_container_add(GTK_CONTAINER(card), vbox);
-        gtk_grid_attach(GTK_GRID(grid), card, col, row, 1, 1);
-
-        col++;
-        if (col >= 3) {
-            col = 0;
-            row++;
-        }
-    }
-
-    gtk_container_add(GTK_CONTAINER(print_grid_container), grid);
-    gtk_widget_show_all(print_grid_container);
+    /* Update print window if it's open */
+    extern void refresh_print_window_grid(void);
+    refresh_print_window_grid();
 }
 
 void on_add_to_print_list(GtkButton *button, gpointer data) {
@@ -809,183 +764,93 @@ void on_remove_from_print_list(GtkButton *button, gpointer data) {
 }
 
 void on_print_selected(GtkButton *button, gpointer data) {
-    const gchar *selected_printer;
     GList *l;
-    int total_prints;
-    int total_files;
-    int success_count;
-    GtkWidget *dialog;
-    char summary[512];
+    const char *printer_name;
+    int total_printed = 0;
+    int total_failed = 0;
+    int total_items = 0;
+    int total_copies = 0;
     gint response;
-    int delay_ms;
+    GtkWidget *dialog;
 
-    if (g_list_length(print_list) == 0) {
+    if (!print_list) {
         dialog = gtk_message_dialog_new(NULL,
                                        GTK_DIALOG_MODAL,
                                        GTK_MESSAGE_WARNING,
                                        GTK_BUTTONS_OK,
-                                       "Lista di stampa vuota!");
+                                       "Nessuna immagine nella lista di stampa!");
         gtk_window_set_title(GTK_WINDOW(dialog), "Attenzione");
+        gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
         return;
     }
 
-    /* Ottieni stampante selezionata */
-    selected_printer = gtk_combo_box_get_active_id(GTK_COMBO_BOX(printer_combo_box));
-    if (!selected_printer || strcmp(selected_printer, "none") == 0) {
+    printer_name = get_selected_printer_from_window();
+    if (!printer_name || strlen(printer_name) == 0) {
         dialog = gtk_message_dialog_new(NULL,
                                        GTK_DIALOG_MODAL,
-                                       GTK_MESSAGE_WARNING,
+                                       GTK_MESSAGE_ERROR,
                                        GTK_BUTTONS_OK,
-                                       "Nessuna stampante selezionata!");
-        gtk_window_set_title(GTK_WINDOW(dialog), "Attenzione");
+                                       "Seleziona una stampante!");
+        gtk_window_set_title(GTK_WINDOW(dialog), "Errore");
+        gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
         return;
     }
 
-    /* Calcola totale stampe */
-    total_prints = 0;
-    total_files = g_list_length(print_list);
+    /* Conta il totale di foto e copie */
     for (l = print_list; l != NULL; l = l->next) {
         PrintItem *item = (PrintItem *)l->data;
-        int copies = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(item->spin_button));
-        total_prints += copies;
+        int copies = item->copies > 0 ? item->copies : 1;
+        total_items++;
+        total_copies += copies;
     }
 
-    /* PRIMO DIALOGO: Riepilogo */
-    snprintf(summary, sizeof(summary),
-             "Stampante: %s\n\n"
-             "File da stampare: %d\n"
-             "Totale stampe: %d\n\n"
-             "Continuare?",
-             selected_printer, total_files, total_prints);
-
+    /* Dialog di riepilogo con conferma */
     dialog = gtk_message_dialog_new(NULL,
                                    GTK_DIALOG_MODAL,
                                    GTK_MESSAGE_QUESTION,
-                                   GTK_BUTTONS_YES_NO,
-                                   "%s", summary);
-    gtk_window_set_title(GTK_WINDOW(dialog), "Conferma Stampa");
-    apply_print_dialog_style(dialog);
-
+                                   GTK_BUTTONS_OK_CANCEL,
+                                   "Stampa %d foto (%d copie totali)?",
+                                   total_items, total_copies);
+    gtk_window_set_title(GTK_WINDOW(dialog), "Riepilogo Stampa");
+    gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
     response = gtk_dialog_run(GTK_DIALOG(dialog));
     gtk_widget_destroy(dialog);
 
-    if (response != GTK_RESPONSE_YES) {
-        g_info("Stampa annullata dall'utente");
+    /* Se l'utente clicca Annulla, non fare nulla */
+    if (response != GTK_RESPONSE_OK) {
         return;
     }
 
-    /* SECONDO DIALOGO: Conferma finale */
-    dialog = gtk_message_dialog_new(NULL,
-                                   GTK_DIALOG_MODAL,
-                                   GTK_MESSAGE_WARNING,
-                                   GTK_BUTTONS_YES_NO,
-                                   "Sei sicuro di voler stampare %d copie?\n\n"
-                                   "Questa azione non può essere annullata.",
-                                   total_prints);
-    gtk_window_set_title(GTK_WINDOW(dialog), "Conferma Finale");
-    apply_print_dialog_style(dialog);
-
-    response = gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
-
-    if (response != GTK_RESPONSE_YES) {
-        g_info("Stampa annullata dall'utente (conferma finale)");
-        return;
-    }
-
-    /* Crea dialogo di progresso */
-    dialog = gtk_message_dialog_new(NULL,
-                                   GTK_DIALOG_MODAL,
-                                   GTK_MESSAGE_INFO,
-                                   GTK_BUTTONS_NONE,
-                                   "Stampa in corso...\n0/%d", total_prints);
-    gtk_window_set_title(GTK_WINDOW(dialog), "Stampa");
-    gtk_widget_show_all(dialog);
-
-    success_count = 0;
-    delay_ms = 500; /* 500ms di timeout tra stampe */
-
-    g_info("Avvio stampa di %d file (%d copie totali) su: %s", total_files, total_prints, selected_printer);
-
-    /* Stampa ogni file con timeout */
+    /* Stampa ogni elemento nella lista */
     for (l = print_list; l != NULL; l = l->next) {
-        PrintItem *item;
-        int copies;
-        int copy_num;
-        char progress_text[256];
+        PrintItem *item = (PrintItem *)l->data;
+        int copies = item->copies > 0 ? item->copies : 1;
+        int i;
 
-        item = (PrintItem *)l->data;
-        copies = (int)gtk_spin_button_get_value(GTK_SPIN_BUTTON(item->spin_button));
+        g_info("Stampa file: %s (%d copie)", item->path, copies);
 
-        g_info("Stampa %s (%d copie)", item->path, copies);
-
-        /* Stampa N copie con timeout */
-        for (copy_num = 0; copy_num < copies; copy_num++) {
-            int current_print;
-
-            current_print = success_count + 1;
-
-            /* Aggiorna dialogo progresso */
-            snprintf(progress_text, sizeof(progress_text),
-                    "Stampa in corso...\n%d/%d\n\n%s (copia %d/%d)",
-                    current_print, total_prints,
-                    g_path_get_basename(item->path),
-                    copy_num + 1, copies);
-            gtk_message_dialog_set_markup(GTK_MESSAGE_DIALOG(dialog), progress_text);
-
-            /* Processa eventi GTK per aggiornare UI */
-            while (gtk_events_pending()) {
-                gtk_main_iteration();
-            }
-
-            /* Stampa */
-            if (print_file(selected_printer, item->path) == 0) {
-                success_count++;
-                g_info("Stampa riuscita: %s (copia %d/%d)", item->path, copy_num + 1, copies);
+        for (i = 0; i < copies; i++) {
+            int result = print_file(printer_name, item->path);
+            if (result == 0) {
+                total_printed++;
             } else {
-                g_warning("Errore nella stampa di: %s (copia %d/%d)", item->path, copy_num + 1, copies);
-            }
-
-            /* Timeout tra stampe (eccetto ultima) */
-            if (success_count < total_prints) {
-                g_usleep(delay_ms * 1000);
+                total_failed++;
             }
         }
     }
 
-    gtk_widget_destroy(dialog);
+    /* Toast notification di conferma finale */
+    char toast_message[256];
+    snprintf(toast_message, sizeof(toast_message),
+             "✓ Stampe completate: %d inviate - %d errori",
+             total_printed, total_failed);
+    show_toast_notification(toast_message);
 
-    /* Mostra risultato finale */
-    if (success_count == total_prints) {
-        dialog = gtk_message_dialog_new(NULL,
-                                       GTK_DIALOG_MODAL,
-                                       GTK_MESSAGE_INFO,
-                                       GTK_BUTTONS_OK,
-                                       "Stampa completata con successo!\n\n"
-                                       "Stampe inviate: %d/%d",
-                                       success_count, total_prints);
-        gtk_window_set_title(GTK_WINDOW(dialog), "Successo");
-        g_info("Tutte le %d stampe inviate con successo!", success_count);
-    } else {
-        dialog = gtk_message_dialog_new(NULL,
-                                       GTK_DIALOG_MODAL,
-                                       GTK_MESSAGE_WARNING,
-                                       GTK_BUTTONS_OK,
-                                       "Stampa completata con errori.\n\n"
-                                       "Stampe riuscite: %d/%d",
-                                       success_count, total_prints);
-        gtk_window_set_title(GTK_WINDOW(dialog), "Attenzione");
-        g_warning("Stampate %d/%d copie", success_count, total_prints);
-    }
-
-    apply_print_dialog_style(dialog);
-
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
+    g_info("Stampa completata: %d stampe inviate, %d errori", total_printed, total_failed);
 }
 
 
@@ -1207,7 +1072,7 @@ GtkWidget *create_view_sidebar(void) {
     gtk_box_pack_start(GTK_BOX(sidebar), btn_edit, FALSE, FALSE, 0);
 
     GtkWidget *btn_print = gtk_button_new_with_label("Stampa");
-    g_signal_connect(btn_print, "clicked", G_CALLBACK(on_add_to_print_list), NULL);
+    g_signal_connect(btn_print, "clicked", G_CALLBACK(on_print_button_clicked), NULL);
     gtk_box_pack_end(GTK_BOX(sidebar), btn_print, FALSE, FALSE, 0);
 
     return sidebar;
@@ -1246,6 +1111,21 @@ void on_config_button_clicked(GtkButton *button, gpointer window) {
     gtk_widget_show_all(config_window);
 }
 
+/* Splash screen data for timeout callback */
+typedef struct {
+    GtkWidget *splash_window;
+    GtkWidget *main_window;
+} SplashData;
+
+static gboolean splash_timeout_callback(gpointer user_data) {
+    SplashData *data = (SplashData *)user_data;
+    gtk_widget_destroy(data->splash_window);
+    gtk_widget_show_all(data->main_window);
+    gtk_window_maximize(GTK_WINDOW(data->main_window));
+    g_free(data);
+    return FALSE;
+}
+
 int main(int argc, char *argv[]) {
     GtkWidget *window;
     char *exe_dir;
@@ -1260,6 +1140,7 @@ int main(int argc, char *argv[]) {
 
     /* Initialize icon manager */
     snprintf(icons_dir, sizeof(icons_dir), "%s/icons", exe_dir);
+    strncpy(global_icons_dir, icons_dir, sizeof(global_icons_dir) - 1);
     icon_manager_init(icons_dir);
 
     /* Load configuration from file */
@@ -1312,7 +1193,7 @@ int main(int argc, char *argv[]) {
     g_object_unref(css_provider);
 
     GtkWidget *header_bar, *stack, *main_vbox, *tabs_box;
-    GtkWidget *btn_config, *btn_import, *btn_view, *btn_print;
+    GtkWidget *btn_config, *btn_import, *btn_view;
 
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size(GTK_WINDOW(window), 1200, 800);
@@ -1343,12 +1224,6 @@ int main(int argc, char *argv[]) {
     g_signal_connect(btn_view, "clicked", G_CALLBACK(on_tab_clicked), (gpointer)"view");
     gtk_box_pack_start(GTK_BOX(tabs_box), btn_view, FALSE, FALSE, 0);
 
-    btn_print = gtk_button_new_with_label("🖨 Stampa");
-    gtk_style_context_add_class(gtk_widget_get_style_context(btn_print), "flat");
-    gtk_button_set_relief(GTK_BUTTON(btn_print), GTK_RELIEF_NONE);
-    g_signal_connect(btn_print, "clicked", G_CALLBACK(on_tab_clicked), (gpointer)"print");
-    gtk_box_pack_start(GTK_BOX(tabs_box), btn_print, FALSE, FALSE, 0);
-
     btn_config = gtk_button_new_with_label("⚙ Config");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_config), "flat");
     gtk_button_set_relief(GTK_BUTTON(btn_config), GTK_RELIEF_NONE);
@@ -1376,18 +1251,13 @@ int main(int argc, char *argv[]) {
     gtk_widget_set_vexpand(stack, TRUE);
     gtk_box_pack_start(GTK_BOX(main_content), stack, TRUE, TRUE, 0);
 
-    // Grid page (shared for Import/View/Print)
+    // Grid page (shared for Import/View)
     GtkWidget *grid_page = create_image_grid();
     gtk_stack_add_titled(GTK_STACK(stack), grid_page, "grid", "Grid");
-
-    // Print page
-    GtkWidget *print_page = create_print_page();
-    gtk_stack_add_titled(GTK_STACK(stack), print_page, "print", "Print");
 
     // Add sidebars for each tab
     gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_import_sidebar(), "import", "Import");
     gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_view_sidebar(), "view", "View");
-    gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_print_sidebar(), "print", "Print");
     gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_empty_sidebar(), "config", "Config");
 
     // Set default tabs
@@ -1398,7 +1268,37 @@ int main(int argc, char *argv[]) {
     g_signal_connect(volume_monitor, "drive-connected", G_CALLBACK(on_drive_connected), NULL);
     g_signal_connect(volume_monitor, "drive-disconnected", G_CALLBACK(on_drive_disconnected), NULL);
 
-    gtk_widget_show_all(window);
+    /* Create and show splash screen */
+    GtkWidget *splash_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_type_hint(GTK_WINDOW(splash_window), GDK_WINDOW_TYPE_HINT_SPLASHSCREEN);
+    gtk_window_set_decorated(GTK_WINDOW(splash_window), FALSE);
+    gtk_window_set_position(GTK_WINDOW(splash_window), GTK_WIN_POS_CENTER);
+
+    char splash_path[1024];
+    snprintf(splash_path, sizeof(splash_path), "%s/ikona-splash.png", global_icons_dir);
+
+    GError *splash_error = NULL;
+    GdkPixbuf *splash_pixbuf = gdk_pixbuf_new_from_file(splash_path, &splash_error);
+
+    if (splash_pixbuf) {
+        GtkWidget *splash_image = gtk_image_new_from_pixbuf(splash_pixbuf);
+        gtk_container_add(GTK_CONTAINER(splash_window), splash_image);
+        g_object_unref(splash_pixbuf);
+    } else {
+        GtkWidget *splash_label = gtk_label_new("Ikona");
+        gtk_container_add(GTK_CONTAINER(splash_window), splash_label);
+        if (splash_error) g_error_free(splash_error);
+    }
+
+    gtk_widget_show_all(splash_window);
+
+    /* Show main window after 2 seconds */
+    SplashData *splash_data = g_malloc(sizeof(SplashData));
+    splash_data->splash_window = splash_window;
+    splash_data->main_window = window;
+
+    g_timeout_add(2000, splash_timeout_callback, splash_data);
+
     gtk_main();
 
     g_free(exe_dir);

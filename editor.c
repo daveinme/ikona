@@ -1,4 +1,6 @@
 #include "editor.h"
+#include "icon_manager.h"
+#include "gui_utils.h"
 #include <gtk/gtk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk-pixbuf/gdk-pixbuf-enum-types.h>
@@ -363,7 +365,7 @@ static void on_save_all_and_close(GtkButton *button, gpointer data) {
     gtk_widget_destroy(editor_window);
 }
 
-GtkWidget *create_photo_editor_window(const char *image_path) {
+GtkWidget *create_photo_editor_window(const char *image_path, const char *icons_dir) {
     if (editor_window) {
         gtk_window_present(GTK_WINDOW(editor_window));
         return editor_window;
@@ -445,8 +447,12 @@ GtkWidget *create_photo_editor_window(const char *image_path) {
     gtk_box_pack_start(GTK_BOX(brightness_header), label_brightness, FALSE, FALSE, 0);
 
     GtkWidget *brightness_buttons = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-    GtkWidget *btn_brightness_dec = gtk_button_new_with_label("-");
-    GtkWidget *btn_brightness_inc = gtk_button_new_with_label("+");
+    char brightness_dec_icon_path[1024];
+    char brightness_inc_icon_path[1024];
+    snprintf(brightness_dec_icon_path, sizeof(brightness_dec_icon_path), "%s/brightness_dec_icon.png", icons_dir);
+    snprintf(brightness_inc_icon_path, sizeof(brightness_inc_icon_path), "%s/brightness_inc_icon.png", icons_dir);
+    GtkWidget *btn_brightness_dec = create_icon_button(brightness_dec_icon_path, "➖ Diminuisci");
+    GtkWidget *btn_brightness_inc = create_icon_button(brightness_inc_icon_path, "➕ Aumenta");
     gtk_widget_set_size_request(btn_brightness_dec, 50, 30);
     gtk_widget_set_size_request(btn_brightness_inc, 50, 30);
     g_signal_connect(btn_brightness_dec, "clicked", G_CALLBACK(on_brightness_dec), NULL);
@@ -463,7 +469,9 @@ GtkWidget *create_photo_editor_window(const char *image_path) {
     gtk_box_pack_start(GTK_BOX(controls_box), separator2, FALSE, FALSE, 5);
 
     // Reset button
-    GtkWidget *button_reset = gtk_button_new_with_label("Reset Filters");
+    char reset_icon_path[1024];
+    snprintf(reset_icon_path, sizeof(reset_icon_path), "%s/reset_icon.png", icons_dir);
+    GtkWidget *button_reset = create_icon_button(reset_icon_path, "🔄 Reset Filtri");
     g_signal_connect(button_reset, "clicked", G_CALLBACK(on_reset_filters), NULL);
     gtk_box_pack_start(GTK_BOX(controls_box), button_reset, FALSE, FALSE, 0);
 
@@ -475,11 +483,15 @@ GtkWidget *create_photo_editor_window(const char *image_path) {
     GtkWidget *rotation_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
     gtk_box_pack_start(GTK_BOX(controls_box), rotation_box, FALSE, FALSE, 0);
 
-    GtkWidget *button_rotate_left = gtk_button_new_with_label("✗ Rotate Left");
+    char rotate_left_icon_path[1024];
+    char rotate_right_icon_path[1024];
+    snprintf(rotate_left_icon_path, sizeof(rotate_left_icon_path), "%s/rotate_left_icon.png", icons_dir);
+    snprintf(rotate_right_icon_path, sizeof(rotate_right_icon_path), "%s/rotate_right_icon.png", icons_dir);
+    GtkWidget *button_rotate_left = create_icon_button(rotate_left_icon_path, "⬅️ Ruota Sinistra");
     gtk_widget_set_sensitive(button_rotate_left, FALSE);
     gtk_box_pack_start(GTK_BOX(rotation_box), button_rotate_left, TRUE, TRUE, 0);
 
-    GtkWidget *button_rotate_right = gtk_button_new_with_label("✗ Rotate Right");
+    GtkWidget *button_rotate_right = create_icon_button(rotate_right_icon_path, "➡️ Ruota Destra");
     gtk_widget_set_sensitive(button_rotate_right, FALSE);
     gtk_box_pack_start(GTK_BOX(rotation_box), button_rotate_right, TRUE, TRUE, 0);
 
@@ -494,11 +506,15 @@ GtkWidget *create_photo_editor_window(const char *image_path) {
     // Navigation buttons
     GtkWidget *nav_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
-    GtkWidget *button_prev = gtk_button_new_with_label("← Previous");
+    char prev_icon_path[1024];
+    char next_icon_path[1024];
+    snprintf(prev_icon_path, sizeof(prev_icon_path), "%s/prev_icon.png", icons_dir);
+    snprintf(next_icon_path, sizeof(next_icon_path), "%s/next_icon.png", icons_dir);
+    GtkWidget *button_prev = create_icon_button(prev_icon_path, "⬅️ Precedente");
     g_signal_connect(button_prev, "clicked", G_CALLBACK(on_previous_image), NULL);
     gtk_box_pack_start(GTK_BOX(nav_box), button_prev, TRUE, TRUE, 0);
 
-    GtkWidget *button_next = gtk_button_new_with_label("Next →");
+    GtkWidget *button_next = create_icon_button(next_icon_path, "Successivo ➡️");
     g_signal_connect(button_next, "clicked", G_CALLBACK(on_next_image), NULL);
     gtk_box_pack_start(GTK_BOX(nav_box), button_next, TRUE, TRUE, 0);
 
@@ -509,17 +525,23 @@ GtkWidget *create_photo_editor_window(const char *image_path) {
     gtk_box_pack_start(GTK_BOX(controls_box), separator5, FALSE, FALSE, 5);
 
     // Save buttons
-    GtkWidget *button_save_next = gtk_button_new_with_label("Save & Next");
+    char save_next_icon_path[1024];
+    snprintf(save_next_icon_path, sizeof(save_next_icon_path), "%s/save_next_icon.png", icons_dir);
+    GtkWidget *button_save_next = create_icon_button(save_next_icon_path, "💾 Salva & Successivo");
     g_signal_connect(button_save_next, "clicked", G_CALLBACK(on_save_and_next), NULL);
     gtk_box_pack_start(GTK_BOX(controls_box), button_save_next, FALSE, FALSE, 0);
 
     GtkWidget *save_actions_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
 
-    GtkWidget *button_cancel = gtk_button_new_with_label("Cancel");
+    char cancel_icon_path[1024];
+    char save_all_icon_path[1024];
+    snprintf(cancel_icon_path, sizeof(cancel_icon_path), "%s/cancel_icon.png", icons_dir);
+    snprintf(save_all_icon_path, sizeof(save_all_icon_path), "%s/save_all_icon.png", icons_dir);
+    GtkWidget *button_cancel = create_icon_button(cancel_icon_path, "❌ Annulla");
     g_signal_connect(button_cancel, "clicked", G_CALLBACK(on_cancel), NULL);
     gtk_box_pack_start(GTK_BOX(save_actions_box), button_cancel, TRUE, TRUE, 0);
 
-    GtkWidget *button_save_all = gtk_button_new_with_label("Save All");
+    GtkWidget *button_save_all = create_icon_button(save_all_icon_path, "💾 Salva Tutti");
     g_signal_connect(button_save_all, "clicked", G_CALLBACK(on_save_all_and_close), NULL);
     gtk_box_pack_start(GTK_BOX(save_actions_box), button_save_all, TRUE, TRUE, 0);
 

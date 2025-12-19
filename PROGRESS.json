@@ -1,0 +1,68 @@
+{
+  "grafica_e_stile": {
+    "splash_screen": {
+      "status": "✅ COMPLETATO",
+      "file": "ikona.c",
+      "descrizione": "Splash screen con ikona-splash.png per 2 secondi, main window massimizzata dopo",
+      "modifiche": [
+        "Aggiunta callback splash_timeout_callback() e struct SplashData",
+        "Creazione finestra splash in main() con logo",
+        "Timeout g_timeout_add(2000) che distrugge splash e massimizza main window"
+      ]
+    },
+    "main_window": {
+      "status": "✅ COMPLETATO",
+      "file": "ikona.c",
+      "descrizione": "Main window massimizzata al startup dopo splash"
+    },
+    "icone": {
+      "status": "⏳ IN ATTESA",
+      "note": "Dipende da implementazione create_icon_button() nei sidebar"
+    },
+    "palette_colori": {
+      "status": "⏳ IN ATTESA",
+      "file": "style.css",
+      "note": "Pulsanti #ffcd1f, border_radius 15px, sfondo #11151c"
+    }
+  },
+  "logica_e_funzionalita": {
+    "stampa": {
+      "status": "⏳ IN PROGRESS - PROBLEMI APERTI",
+      "file": "ikona.c, printer.c",
+      "descrizione": "Finestra stampa massimizzata dedicata funziona, ma logica stampa non completata",
+      "completato": [
+        "Rimosso tab stampa dalla UI principale",
+        "Pulsante 'Stampa Ora' sidebar apre finestra stampa massimizzata",
+        "Pulsante 'Stampa' sidebar aggiunge foto alla lista stampa",
+        "Finestra stampa mostra foto da stampare con selezione stampante"
+      ],
+      "da_risolvere": [
+        "Logica di stampa vera e propria (pulsante 'Stampa Tutto' nella finestra)",
+        "Log stampe giornaliere in JSON",
+        "Conferma dialog e progressione stampa"
+      ],
+      "nota": "Rinviato a prossima sessione"
+    },
+    "pannello_config": {
+      "status": "⏳ IN ATTESA",
+      "file": "ikona.c",
+      "descrizione": "Pannello config con 2 tab: Base (SD/stampante) e Report (calendario)",
+      "note": "Non ancora implementato"
+    }
+  },
+  "notifiche_e_debug": {
+    "status": "⏳ IN ATTESA",
+    "fase_attuale": "testing"
+  },
+  "sessione_corrente": {
+    "data": "2025-12-19",
+    "completato": [
+      "Punto 1: Splash screen + Main window massimizzata",
+      "Punto 2: Finestra stampa massimizzata dedicata"
+    ],
+    "rimandato": [
+      "Punto 3: Pannello config con 2 tab (prossima sessione)",
+      "Risoluzione problema stampa vera (prossima sessione)"
+    ]
+  }
+}
