@@ -5,6 +5,7 @@
 #include "icon_manager.h"
 #include "editor.h"
 #include "print_log.h"
+#include "utils.h"
 #include <string.h>
 
 #ifdef _WIN32
@@ -20,7 +21,8 @@ GtkWidget *label_auto_photo_count;  // Label for number of photos in Auto tab
 char src_folder[512] = "";
 char base_dst_folder[512] = "";
 char view_folder[512] = "";
-char *image_files[10000];
+char *image_files[10000];          // Path thumbnails
+char *original_files[10000];       // Path originali (mapping parallelo)
 int total_images = 0;
 int current_page = 0;
 int images_per_page = 9;
@@ -28,6 +30,7 @@ int images_per_page = 9;
 /* Auto-Import SD configuration */
 char sd_drive_letters[256] = "";  // Comma-separated drive letters (es: "E:,F:,G:")
 gboolean auto_import_enabled = FALSE;
+int import_buffer_size = 65536;   // Default 64KB (4KB=4096, 64KB=65536, 128KB=131072, 256KB=262144)
 GtkWidget *entry_sd_letters = NULL;
 GtkWidget *check_auto_import = NULL;
 GtkWidget *import_radio_manual = NULL;
@@ -46,16 +49,20 @@ GtkWidget *global_sidebar_stack = NULL;  // Stack per sidebar dinamico
 GtkWidget *import_spinner = NULL;  // Global spinner for import operations
 GtkWidget *import_progress_bar = NULL;  // Progress bar for manual imports
 GtkWidget *import_progress_bar_auto = NULL;  // Progress bar for auto imports
+GtkWidget *report_page_widget = NULL;  // Report page widget (needs refresh)
 char global_icons_dir[1024] = "";  // Global icons directory path
 
 
 GtkWidget *create_view_page(GtkWidget *window);
 GtkWidget *create_print_page();
 GtkWidget *create_config_page(GtkWidget *window);
+GtkWidget *create_report_page(void);
 GtkWidget *create_import_sidebar(void);
 GtkWidget *create_view_sidebar(void);
 GtkWidget *create_print_sidebar(void);
 GtkWidget *create_empty_sidebar(void);
+GtkWidget *create_config_sidebar(void);
+GtkWidget *create_report_sidebar(void);
 GtkWidget *create_image_grid(void);
 
 /* Auto-Import functions */
@@ -130,7 +137,19 @@ void on_tab_clicked(GtkButton *button, gpointer tab_name) {
     }
 
     if (global_stack) {
-        if (strcmp(tab, "config") != 0) {
+        if (strcmp(tab, "config") == 0) {
+            gtk_stack_set_visible_child_name(GTK_STACK(global_stack), "config");
+        } else if (strcmp(tab, "report") == 0) {
+            /* Ricrea il report ogni volta che viene visualizzato */
+            if (report_page_widget) {
+                gtk_widget_destroy(report_page_widget);
+                report_page_widget = NULL;
+            }
+            report_page_widget = create_report_page();
+            gtk_stack_add_titled(GTK_STACK(global_stack), report_page_widget, "report", "Report");
+            gtk_widget_show_all(report_page_widget);
+            gtk_stack_set_visible_child_name(GTK_STACK(global_stack), "report");
+        } else {
             gtk_stack_set_visible_child_name(GTK_STACK(global_stack), "grid");
         }
     }
@@ -147,12 +166,22 @@ void on_import_manual_tab(GtkButton *button, gpointer data) {
     if (import_sidebar_stack) {
         gtk_stack_set_visible_child_name(GTK_STACK(import_sidebar_stack), "manuale");
     }
+
+    /* Aggiorna stili dei pulsanti */
+    GtkWidget *btn_auto = (GtkWidget *)g_object_get_data(G_OBJECT(button), "btn_auto");
+    gtk_style_context_remove_class(gtk_widget_get_style_context(btn_auto), "suggested-action");
+    gtk_style_context_add_class(gtk_widget_get_style_context(GTK_WIDGET(button)), "suggested-action");
 }
 
 void on_import_auto_tab(GtkButton *button, gpointer data) {
     if (import_sidebar_stack) {
         gtk_stack_set_visible_child_name(GTK_STACK(import_sidebar_stack), "auto");
     }
+
+    /* Aggiorna stili dei pulsanti */
+    GtkWidget *btn_manuale = (GtkWidget *)g_object_get_data(G_OBJECT(button), "btn_manuale");
+    gtk_style_context_remove_class(gtk_widget_get_style_context(btn_manuale), "suggested-action");
+    gtk_style_context_add_class(gtk_widget_get_style_context(GTK_WIDGET(button)), "suggested-action");
 }
 
 void on_open_secondary_viewer(GtkButton *button, gpointer data) {
@@ -200,6 +229,8 @@ void save_config(void) {
     fprintf(fp, "[AutoImport]\n");
     fprintf(fp, "enabled=%d\n", auto_import_enabled ? 1 : 0);
     fprintf(fp, "drive_letters=%s\n", sd_drive_letters);
+    fprintf(fp, "\n[Performance]\n");
+    fprintf(fp, "buffer_size=%d\n", import_buffer_size);
     fprintf(fp, "\n[Folders]\n");
     fprintf(fp, "src=%s\n", src_folder);
     fprintf(fp, "dst=%s\n", base_dst_folder);
@@ -247,6 +278,12 @@ void load_config(void) {
             auto_import_enabled = (atoi(value) == 1);
         } else if (strcmp(key, "drive_letters") == 0) {
             strncpy(sd_drive_letters, value, sizeof(sd_drive_letters) - 1);
+        } else if (strcmp(key, "buffer_size") == 0) {
+            int size = atoi(value);
+            // Validate buffer size (must be 4KB, 64KB, 128KB, or 256KB)
+            if (size == 4096 || size == 65536 || size == 131072 || size == 262144) {
+                import_buffer_size = size;
+            }
         } else if (strcmp(key, "src") == 0) {
             strncpy(src_folder, value, sizeof(src_folder) - 1);
         } else if (strcmp(key, "dst") == 0) {
@@ -272,6 +309,19 @@ void on_sd_config_changed(GtkWidget *widget, gpointer data) {
     }
 
     save_config();
+}
+
+/* Callback when buffer size changes */
+void on_buffer_size_changed(GtkComboBox *combo, gpointer data) {
+    const char *id = gtk_combo_box_get_active_id(combo);
+    if (id) {
+        int size = atoi(id);
+        if (size == 4096 || size == 65536 || size == 131072 || size == 262144) {
+            import_buffer_size = size;
+            save_config();
+            g_info("Buffer size changed to: %d bytes (%d KB)", size, size / 1024);
+        }
+    }
 }
 
 /* Check if a drive path matches monitored letters */
@@ -516,9 +566,125 @@ GtkWidget *create_config_page(GtkWidget *window) {
     gtk_widget_set_halign(label_help, GTK_ALIGN_START);
     gtk_grid_attach(GTK_GRID(grid), label_help, 0, 10, 2, 1);
 
+    /* Separator */
+    GtkWidget *separator2 = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+    gtk_grid_attach(GTK_GRID(grid), separator2, 0, 11, 2, 1);
+
+    /* Performance section */
+    GtkWidget *label_performance = gtk_label_new("<b>Prestazioni Import</b>");
+    gtk_label_set_use_markup(GTK_LABEL(label_performance), TRUE);
+    gtk_widget_set_halign(label_performance, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(grid), label_performance, 0, 12, 2, 1);
+
+    GtkWidget *label_buffer = gtk_label_new("Dimensione buffer I/O:");
+    gtk_widget_set_halign(label_buffer, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(grid), label_buffer, 0, 13, 1, 1);
+
+    GtkWidget *combo_buffer = gtk_combo_box_text_new();
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_buffer), "4096", "4 KB (Sicuro, lento)");
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_buffer), "65536", "64 KB (Bilanciato) ⭐");
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_buffer), "131072", "128 KB (Veloce)");
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_buffer), "262144", "256 KB (Massimo, richiede RAM)");
+
+    // Set current value
+    char current_id[16];
+    snprintf(current_id, sizeof(current_id), "%d", import_buffer_size);
+    gtk_combo_box_set_active_id(GTK_COMBO_BOX(combo_buffer), current_id);
+
+    g_signal_connect(combo_buffer, "changed", G_CALLBACK(on_buffer_size_changed), NULL);
+    gtk_grid_attach(GTK_GRID(grid), combo_buffer, 1, 13, 1, 1);
+
+    GtkWidget *label_buffer_help = gtk_label_new("<small><i>Buffer più grandi = import più veloce, ma usano più RAM.\n64 KB è il valore consigliato per la maggior parte dei PC.</i></small>");
+    gtk_label_set_use_markup(GTK_LABEL(label_buffer_help), TRUE);
+    gtk_label_set_line_wrap(GTK_LABEL(label_buffer_help), TRUE);
+    gtk_widget_set_halign(label_buffer_help, GTK_ALIGN_START);
+    gtk_grid_attach(GTK_GRID(grid), label_buffer_help, 0, 14, 2, 1);
+
     return grid;
 }
 
+
+GtkWidget *create_report_page(void) {
+    GtkWidget *vbox, *label_title, *scrolled, *report_box, *separator;
+    GtkWidget *label_help, *clear_button, *hbox_buttons;
+    GList *dates, *l;
+
+    vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
+
+    label_title = gtk_label_new("Report Stampe Giornaliere");
+    gtk_style_context_add_class(gtk_widget_get_style_context(label_title), "title");
+    gtk_box_pack_start(GTK_BOX(vbox), label_title, FALSE, FALSE, 0);
+
+    label_help = gtk_label_new("Riepilogo delle stampe per data:");
+    gtk_widget_set_halign(label_help, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(vbox), label_help, FALSE, FALSE, 0);
+
+    scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),
+                                   GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_vexpand(scrolled, TRUE);
+
+    report_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_container_set_border_width(GTK_CONTAINER(report_box), 10);
+
+    /* Get all dates from print log */
+    dates = get_all_print_dates();
+
+    if (dates == NULL || g_list_length(dates) == 0) {
+        GtkWidget *empty_label = gtk_label_new("Nessuna stampa registrata ancora.");
+        gtk_widget_set_halign(empty_label, GTK_ALIGN_CENTER);
+        gtk_widget_set_valign(empty_label, GTK_ALIGN_CENTER);
+        gtk_box_pack_start(GTK_BOX(report_box), empty_label, TRUE, TRUE, 0);
+    } else {
+        /* Display each date with count */
+        for (l = dates; l != NULL; l = l->next) {
+            const char *date = (const char *)l->data;
+            int count = get_print_total_for_date(date);
+
+            GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+            gtk_box_set_homogeneous(GTK_BOX(hbox), FALSE);
+
+            GtkWidget *label_date = gtk_label_new(date);
+            gtk_widget_set_halign(label_date, GTK_ALIGN_START);
+            gtk_widget_set_size_request(label_date, 120, -1);
+            gtk_box_pack_start(GTK_BOX(hbox), label_date, FALSE, FALSE, 0);
+
+            GtkWidget *label_count = gtk_label_new(
+                g_strdup_printf("📄 %d copie", count));
+            gtk_widget_set_halign(label_count, GTK_ALIGN_START);
+            gtk_box_pack_start(GTK_BOX(hbox), label_count, FALSE, FALSE, 0);
+
+            gtk_box_pack_start(GTK_BOX(report_box), hbox, FALSE, FALSE, 0);
+
+            if (l->next != NULL) {
+                GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+                gtk_box_pack_start(GTK_BOX(report_box), sep, FALSE, FALSE, 0);
+            }
+        }
+
+        /* Free dates list */
+        g_list_free_full(dates, g_free);
+    }
+
+    gtk_container_add(GTK_CONTAINER(scrolled), report_box);
+    gtk_box_pack_start(GTK_BOX(vbox), scrolled, TRUE, TRUE, 0);
+
+    separator = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+    gtk_box_pack_start(GTK_BOX(vbox), separator, FALSE, FALSE, 0);
+
+    /* Bottom buttons */
+    hbox_buttons = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    gtk_box_set_homogeneous(GTK_BOX(hbox_buttons), TRUE);
+
+    clear_button = gtk_button_new_with_label("🗑 Cancella Log");
+    g_signal_connect(clear_button, "clicked", G_CALLBACK(clear_print_log_with_dialog), NULL);
+    gtk_box_pack_start(GTK_BOX(hbox_buttons), clear_button, TRUE, TRUE, 0);
+
+    gtk_box_pack_start(GTK_BOX(vbox), hbox_buttons, FALSE, FALSE, 0);
+
+    return vbox;
+}
 
 GtkWidget *create_import_page() {
     // Return just the image grid - sidebar is handled globally
@@ -718,7 +884,8 @@ void on_add_to_print_list(GtkButton *button, gpointer data) {
         PrintItem *item;
 
         img_idx = selected_images[i];
-        image_path = image_files[img_idx];
+        // NUOVO: Usa path ORIGINALE (non thumbnail) per stampa
+        image_path = original_files[img_idx];
 
         /* Controlla se già esiste */
         already_exists = FALSE;
@@ -779,6 +946,9 @@ void on_print_selected(GtkButton *button, gpointer data) {
     gint response;
     GtkWidget *dialog;
 
+    /* NUOVO: Cancella timeout di pulizia automatica (stiamo stampando) */
+    cancel_print_list_cleanup_timeout();
+
     if (!print_list) {
         GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(button));
         dialog = gtk_message_dialog_new(GTK_WINDOW(toplevel),
@@ -811,7 +981,15 @@ void on_print_selected(GtkButton *button, gpointer data) {
     /* Conta il totale di foto e copie */
     for (l = print_list; l != NULL; l = l->next) {
         PrintItem *item = (PrintItem *)l->data;
-        int copies = item->copies > 0 ? item->copies : 1;
+        int copies = 1;
+
+        /* Leggi il numero di copie dallo spinner se disponibile */
+        if (item->spin_button) {
+            copies = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->spin_button));
+        } else {
+            copies = item->copies > 0 ? item->copies : 1;
+        }
+
         total_items++;
         total_copies += copies;
     }
@@ -837,7 +1015,15 @@ void on_print_selected(GtkButton *button, gpointer data) {
     /* Stampa ogni elemento nella lista */
     for (l = print_list; l != NULL; l = l->next) {
         PrintItem *item = (PrintItem *)l->data;
-        int copies = item->copies > 0 ? item->copies : 1;
+        int copies = 1;
+
+        /* Leggi il numero di copie dallo spinner se disponibile */
+        if (item->spin_button) {
+            copies = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(item->spin_button));
+        } else {
+            copies = item->copies > 0 ? item->copies : 1;
+        }
+
         int i;
 
         g_info("Stampa file: %s (%d copie)", item->path, copies);
@@ -852,6 +1038,11 @@ void on_print_selected(GtkButton *button, gpointer data) {
         }
     }
 
+    /* Log print to history (only if successful) */
+    if (total_printed > 0) {
+        log_print(total_printed);
+    }
+
     /* Toast notification di conferma finale */
     char toast_message[256];
     snprintf(toast_message, sizeof(toast_message),
@@ -860,6 +1051,9 @@ void on_print_selected(GtkButton *button, gpointer data) {
     show_toast_notification(toast_message);
 
     g_info("Stampa completata: %d stampe inviate, %d errori", total_printed, total_failed);
+
+    /* NUOVO: Pulisci lista stampa dopo completamento */
+    on_remove_from_print_list(NULL, NULL);
 }
 
 
@@ -932,6 +1126,32 @@ GtkWidget *create_empty_sidebar(void) {
     return sidebar;
 }
 
+GtkWidget *create_config_sidebar(void) {
+    GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
+    gtk_style_context_add_class(gtk_widget_get_style_context(sidebar), "sidebar");
+
+    GtkWidget *label = gtk_label_new("Configurazione");
+    gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
+    gtk_widget_set_halign(label, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(sidebar), label, FALSE, FALSE, 0);
+
+    return sidebar;
+}
+
+GtkWidget *create_report_sidebar(void) {
+    GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_container_set_border_width(GTK_CONTAINER(sidebar), 16);
+    gtk_style_context_add_class(gtk_widget_get_style_context(sidebar), "sidebar");
+
+    GtkWidget *label = gtk_label_new("Report");
+    gtk_style_context_add_class(gtk_widget_get_style_context(label), "title");
+    gtk_widget_set_halign(label, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(sidebar), label, FALSE, FALSE, 0);
+
+    return sidebar;
+}
+
 GtkWidget *create_import_sidebar(void) {
     /* 1. Contenitore principale */
     GtkWidget *sidebar = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
@@ -947,23 +1167,46 @@ GtkWidget *create_import_sidebar(void) {
     GtkWidget *tabs_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_style_context_add_class(gtk_widget_get_style_context(tabs_box), "linked"); // Unisce i pulsanti visivamente
 
-    GtkWidget *btn_manuale = gtk_button_new_with_label("Manuale");
-    gtk_style_context_add_class(gtk_widget_get_style_context(btn_manuale), "flat");
-    
     GtkWidget *btn_auto = gtk_button_new_with_label("Auto");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_auto), "flat");
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_auto), "suggested-action");
+    gtk_widget_set_name(GTK_WIDGET(btn_auto), "btn-auto");
 
-    gtk_box_pack_start(GTK_BOX(tabs_box), btn_manuale, TRUE, TRUE, 0);
+    GtkWidget *btn_manuale = gtk_button_new_with_label("Manuale");
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_manuale), "flat");
+    gtk_widget_set_name(GTK_WIDGET(btn_manuale), "btn-manuale");
+
     gtk_box_pack_start(GTK_BOX(tabs_box), btn_auto, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(tabs_box), btn_manuale, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(sidebar), tabs_box, FALSE, FALSE, 15);
+
+    /* Salva riferimenti ai pulsanti per gestire l'attivo */
+    g_object_set_data(G_OBJECT(btn_auto), "btn_manuale", btn_manuale);
+    g_object_set_data(G_OBJECT(btn_manuale), "btn_auto", btn_auto);
 
     /* 4. Stack per il contenuto */
     GtkWidget *import_stack = gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(import_stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
 
+    /* --- CONTENUTO AUTO (creato per primo = default) --- */
+    GtkWidget *auto_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    label_auto_photo_count = gtk_label_new("0 Foto da importare");
+    gtk_box_pack_start(GTK_BOX(auto_box), label_auto_photo_count, FALSE, FALSE, 10);
+
+    GtkWidget *btn_scan = create_icon_only_button(ICON_AGGIORNA, 20, "Aggiorna SD");
+    g_signal_connect(btn_scan, "clicked", G_CALLBACK(on_scan_sd_for_auto), NULL);
+    gtk_box_pack_start(GTK_BOX(auto_box), btn_scan, FALSE, FALSE, 0);
+
+    import_progress_bar_auto = gtk_progress_bar_new();
+    gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(import_progress_bar_auto), TRUE);
+    gtk_widget_set_margin_top(import_progress_bar_auto, 10);
+    gtk_box_pack_start(GTK_BOX(auto_box), import_progress_bar_auto, FALSE, FALSE, 0);
+
+    gtk_stack_add_named(GTK_STACK(import_stack), auto_box, "auto");
+
     /* --- CONTENUTO MANUALE --- */
     GtkWidget *manuale_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    
+
     gtk_box_pack_start(GTK_BOX(manuale_box), gtk_label_new("Origine:"), FALSE, FALSE, 0);
     GtkWidget *btn_src = gtk_button_new_with_label("Sfoglia...");
     g_signal_connect(btn_src, "clicked", G_CALLBACK(on_select_src_folder), NULL);
@@ -987,22 +1230,6 @@ GtkWidget *create_import_sidebar(void) {
 
     gtk_stack_add_named(GTK_STACK(import_stack), manuale_box, "manuale");
 
-    /* --- CONTENUTO AUTO --- */
-    GtkWidget *auto_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    label_auto_photo_count = gtk_label_new("0 Foto da importare");
-    gtk_box_pack_start(GTK_BOX(auto_box), label_auto_photo_count, FALSE, FALSE, 10);
-
-    GtkWidget *btn_scan = create_icon_only_button(ICON_AGGIORNA, 20, "Aggiorna SD");
-    g_signal_connect(btn_scan, "clicked", G_CALLBACK(on_scan_sd_for_auto), NULL);
-    gtk_box_pack_start(GTK_BOX(auto_box), btn_scan, FALSE, FALSE, 0);
-
-    import_progress_bar_auto = gtk_progress_bar_new();
-    gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(import_progress_bar_auto), TRUE);
-    gtk_widget_set_margin_top(import_progress_bar_auto, 10);
-    gtk_box_pack_start(GTK_BOX(auto_box), import_progress_bar_auto, FALSE, FALSE, 0);
-
-    gtk_stack_add_named(GTK_STACK(import_stack), auto_box, "auto");
-
     /* Impacchettiamo lo stack al centro */
     gtk_box_pack_start(GTK_BOX(sidebar), import_stack, TRUE, TRUE, 0);
 
@@ -1018,6 +1245,9 @@ GtkWidget *create_import_sidebar(void) {
     import_sidebar_stack = import_stack;
     g_signal_connect(btn_manuale, "clicked", G_CALLBACK(on_import_manual_tab), NULL);
     g_signal_connect(btn_auto, "clicked", G_CALLBACK(on_import_auto_tab), NULL);
+
+    /* Imposta "Auto" come tab visibile di default */
+    gtk_stack_set_visible_child_name(GTK_STACK(import_stack), "auto");
 
     return sidebar;
 }
@@ -1136,17 +1366,7 @@ GtkWidget *create_print_sidebar(void) {
 }
 
 void on_config_button_clicked(GtkButton *button, gpointer window) {
-    GtkWidget *config_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(config_window), "Configurazione");
-    gtk_window_set_transient_for(GTK_WINDOW(config_window), GTK_WINDOW(window));
-    gtk_window_set_modal(GTK_WINDOW(config_window), TRUE);
-    gtk_window_set_destroy_with_parent(GTK_WINDOW(config_window), TRUE);
-    gtk_window_set_default_size(GTK_WINDOW(config_window), 400, 500);
-
-    GtkWidget *config_grid = create_config_page(config_window);
-    gtk_container_add(GTK_CONTAINER(config_window), config_grid);
-
-    gtk_widget_show_all(config_window);
+    on_tab_clicked(button, (gpointer)"config");
 }
 
 /* Splash screen data for timeout callback */
@@ -1165,13 +1385,44 @@ static gboolean splash_timeout_callback(gpointer user_data) {
 }
 
 int main(int argc, char *argv[]) {
-    GtkWidget *window;
     char *exe_dir;
     char icons_dir[1024];
     char css_path[1024];
     const char *css_locations[3];
 
     gtk_init(&argc, &argv);
+
+    /* NUOVO: Scala dimensioni griglia in base allo schermo */
+    GdkScreen *screen = gdk_screen_get_default();
+    if (screen) {
+        int screen_width = gdk_screen_get_width(screen);
+        if (screen_width < 1400) {  // Schermi piccoli (19")
+            extern int CELL_WIDTH, CELL_HEIGHT, SECONDARY_CELL_WIDTH, SECONDARY_CELL_HEIGHT;
+            CELL_WIDTH = 320;
+            CELL_HEIGHT = 200;
+            SECONDARY_CELL_WIDTH = 420;
+            SECONDARY_CELL_HEIGHT = 260;
+            g_message("Schermo piccolo rilevato (%dpx): griglia scalata", screen_width);
+        }
+    }
+
+    /* NUOVO: Inizializza directory applicazione */
+    if (ensure_app_directories_exist() != 0) {
+        GtkWidget *error_dialog = gtk_message_dialog_new(NULL,
+            GTK_DIALOG_MODAL,
+            GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_OK,
+            "Impossibile creare le directory dell'applicazione.\n"
+            "Verificare i permessi di scrittura.");
+        gtk_dialog_run(GTK_DIALOG(error_dialog));
+        gtk_widget_destroy(error_dialog);
+        return 1;
+    }
+
+    /* Log percorsi per debug */
+    g_message("App data directory: %s", get_app_data_dir());
+    g_message("Originals: %s", get_originals_base_path());
+    g_message("Thumbnails: %s", get_thumbnails_base_path());
 
     /* Get executable directory once */
     exe_dir = g_path_get_dirname(argv[0]);
@@ -1265,8 +1516,14 @@ int main(int argc, char *argv[]) {
     btn_config = create_button_with_icon(ICON_CONFIG, "Config", 37);
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_config), "flat");
     gtk_button_set_relief(GTK_BUTTON(btn_config), GTK_RELIEF_NONE);
-    g_signal_connect(btn_config, "clicked", G_CALLBACK(on_config_button_clicked), main_window);
+    g_signal_connect(btn_config, "clicked", G_CALLBACK(on_tab_clicked), (gpointer)"config");
     gtk_box_pack_start(GTK_BOX(tabs_box), btn_config, FALSE, FALSE, 0);
+
+    GtkWidget *btn_report = create_button_with_icon(ICON_REPORT, "Report", 37);
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_report), "flat");
+    gtk_button_set_relief(GTK_BUTTON(btn_report), GTK_RELIEF_NONE);
+    g_signal_connect(btn_report, "clicked", G_CALLBACK(on_tab_clicked), (gpointer)"report");
+    gtk_box_pack_start(GTK_BOX(tabs_box), btn_report, FALSE, FALSE, 0);
 
     // MAIN CONTENT AREA with sidebar + stack
     GtkWidget *main_content = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -1293,10 +1550,17 @@ int main(int argc, char *argv[]) {
     GtkWidget *grid_page = create_image_grid();
     gtk_stack_add_titled(GTK_STACK(stack), grid_page, "grid", "Grid");
 
+    // Config page
+    GtkWidget *config_page = create_config_page(main_window);
+    gtk_stack_add_titled(GTK_STACK(stack), config_page, "config", "Config");
+
+    // Report page will be created on demand in on_tab_clicked()
+
     // Add sidebars for each tab
     gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_import_sidebar(), "import", "Import");
     gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_view_sidebar(), "view", "View");
-    gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_empty_sidebar(), "config", "Config");
+    gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_config_sidebar(), "config", "Config");
+    gtk_stack_add_titled(GTK_STACK(sidebar_stack), create_report_sidebar(), "report", "Report");
 
     // Set default tabs
     gtk_stack_set_visible_child_name(GTK_STACK(sidebar_stack), "import");
@@ -1312,7 +1576,7 @@ int main(int argc, char *argv[]) {
     gtk_window_set_decorated(GTK_WINDOW(splash_window), FALSE);
     gtk_window_set_position(GTK_WINDOW(splash_window), GTK_WIN_POS_CENTER);
 
-    char splash_path[1024];
+    char splash_path[2048];
     snprintf(splash_path, sizeof(splash_path), "%s/ikona-splash.png", global_icons_dir);
 
     GError *splash_error = NULL;

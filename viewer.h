@@ -3,11 +3,12 @@
 
 #include <gtk/gtk.h>
 
-#define CELL_WIDTH 400
-#define CELL_HEIGHT 250
-#define SECONDARY_CELL_WIDTH 520
-#define SECONDARY_CELL_HEIGHT 325
 #define THUMBNAIL_SIZE 800
+
+extern int CELL_WIDTH;
+extern int CELL_HEIGHT;
+extern int SECONDARY_CELL_WIDTH;
+extern int SECONDARY_CELL_HEIGHT;
 
 extern gboolean show_only_selected;
 extern GtkCssProvider *global_css_provider;

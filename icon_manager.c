@@ -31,8 +31,9 @@ static const char* icon_filenames[] = {
 
     /* Navbar Icons */
     [ICON_IMPORTA] = "importa_icon.png",
-    [ICON_FOTO] = "camera_icon-icons.com_72364.png",
+    [ICON_FOTO] = "foto_icon.png",
     [ICON_STAMPA_NAVBAR] = "stampa_icon.png",
+    [ICON_REPORT] = "report_icon.png",
     [ICON_CONFIG] = "config_icon.png",
 
     /* Sidebar Importa */

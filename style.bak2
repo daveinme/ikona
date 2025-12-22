@@ -1,0 +1,260 @@
+/* ==========================================
+   IKONA - PREMIUM MINIMAL DESIGN
+   Customized for Ciro Rusciano
+   Palette: Midnight Blue (#11151C) & Gold (#FFCD1F)
+   =========================================== */
+
+/* Global styles */
+* {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Roboto, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+    -gtk-icon-theme: 'Adwaita';
+}
+
+/* ============ WINDOW & MAIN ============ */
+window {
+    background-color: #11151c; /* Tuo colore originale */
+    color: #EBEBF0;
+}
+
+/* ============ HEADER BAR ============ */
+headerbar {
+    background-color: #1a1f29;
+    background-image: linear-gradient(180deg, rgba(255, 205, 31, 0.05) 0%, transparent 100%);
+    border-bottom: 1px solid #ffcd1f;
+    color: #ffcd1f;
+    padding: 0 16px;
+    font-weight: 500;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+headerbar label {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ============ SIDEBAR ============ */
+.sidebar {
+    background-color: #1a1f29;
+    border-right: 1px solid #2B2B32;
+    padding: 16px;
+}
+
+/* ============ TOP & BOTTOM BARS ============ */
+.top-bar,
+.bottom-bar {
+    background-color: #1a1f29;
+    background-image: linear-gradient(180deg, rgba(255, 205, 31, 0.03) 0%, transparent 100%);
+    border-color: #ffcd1f;
+    padding: 8px 12px;
+}
+.top-bar {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+}
+.bottom-bar {
+    border-top-width: 1px;
+    border-top-style: solid;
+}
+
+
+/* ============ BUTTONS (Updated to 15px radius) ============ */
+button {
+    background: #001E36;
+    color: #555555;
+    
+    border-radius: 15px; /* Aggiornato come da JSON */
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    /*box-shadow: 0 2px 8px rgba(255, 205, 31, 0.25);*/
+}
+
+button:hover {
+    background: #555555;
+    
+    
+}
+
+button:active {
+    background: #555555;
+    
+}
+
+button:focus {
+    border-color: #ffffff;
+    box-shadow: 0 0 0 4px rgba(255, 205, 31, 0.25);
+}
+
+button:disabled {
+    background: #1F1F25;
+    border-color: #2B2B32;
+    color: #6B6B73;
+    box-shadow: none;
+    opacity: 0.6;
+}
+
+/* Secondary / Flat buttons */
+button.flat {
+    background: transparent;
+    color: #35ec44;
+    border: 1px solid #2B2B32;
+    box-shadow: none;
+}
+
+button.flat:hover {
+    background-color: rgba(255, 205, 31, 0.08);
+    border-color: #ffcd1f;
+    box-shadow: 0 2px 8px rgba(255, 205, 31, 0.15);
+}
+
+/* ============ LABELS & TEXT ============ */
+label {
+    font-size: 13px;
+    color: #A0A0A8;
+    font-weight: 500;
+}
+
+label.title {
+    color: #ffcd1f;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* ============ ENTRIES & INPUTS ============ */
+entry {
+    background-color: #1F1F25;
+    color: #EBEBF0;
+    caret-color: #ffcd1f;
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+entry:focus {
+    border-color: #ffcd1f;
+    background-color: #1F1F25;
+    box-shadow: 0 0 0 4px rgba(255, 205, 31, 0.15);
+}
+
+/* ============ SEPARATORS ============ */
+separator {
+    background: linear-gradient(90deg, #ffcd1f 0%, transparent 50%, #ffcd1f 100%);
+    margin: 16px 0;
+    opacity: 0.3;
+}
+
+/* ============ SCROLLED WINDOWS ============ */
+scrolledwindow {
+    background-color: transparent;
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+    min-height: 450px;
+}
+
+scrolledwindow:focus-within {
+    border-color: #ffcd1f;
+}
+
+/* ============ SCROLLBARS ============ */
+scrollbar slider {
+    background-color: #ffcd1f;
+    border-radius: 8px;
+    min-width: 6px;
+    transition: all 0.2s ease;
+}
+
+/* ============ FRAMES ============ */
+frame {
+    background-color: #1a1f29;
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+}
+
+frame:focus-within {
+    border-color: #ffcd1f;
+}
+
+/* ============ SPINBUTTON ============ */
+spinbutton {
+    border-radius: 8px;
+    border: 1px solid #2B2B32;
+    background-color: #1F1F25;
+    color: #EBEBF0;
+}
+
+spinbutton text {
+    color: #EBEBF0;
+}
+
+spinbutton:focus-within {
+    border-color: #ffcd1f;
+}
+
+spinbutton button:hover {
+    background-color: rgba(255, 205, 31, 0.1);
+    color: #ffcd1f;
+}
+
+/* ============ COMBOBOX ============ */
+combobox > box {
+    border: 1px solid #2B2B32;
+    border-radius: 8px;
+    background-color: #1F1F25;
+}
+
+combobox:focus-within > box {
+    border-color: #ffcd1f;
+}
+
+combobox button:hover arrow {
+    color: #ffcd1f;
+}
+
+/* ============ LISTBOX & ROWS ============ */
+row:selected {
+    background-color: rgba(255, 205, 31, 0.12);
+    color: #ffcd1f;
+    border-bottom-color: #ffcd1f;
+}
+
+/* ============ DIALOG STYLING ============ */
+dialog {
+    background-color: #11151c;
+    color: #EBEBF0;
+    border: 1px solid #ffcd1f;
+    border-radius: 12px;
+}
+
+/* ============ STACK TABS ============ */
+.tab-label.active {
+    color: #ffcd1f;
+    border-bottom-color: #ffcd1f;
+}
+
+/* ============ ICON BUTTONS ============ */
+#icon-button:hover {
+    border-color: #ffcd1f;
+    color: #ffcd1f;
+}
+
+#icon-button:hover label {
+    color: #ffcd1f;
+}
+
+/* ============ IMAGE CELLS ============ */
+.image-cell-clip {
+    background: linear-gradient(135deg, #11151c, #1F1F25);
+    border: 2px solid #2B2B32;
+}
+
+.image-cell-clip:hover {
+    border-color: #ffcd1f;
+    box-shadow: 0 0 16px rgba(255, 205, 31, 0.15);
+}
+
+.image-cell-selected {
+    border: 3px solid #ffcd1f;
+}

@@ -25,6 +25,7 @@ typedef enum {
     ICON_FOTO,
     ICON_STAMPA_NAVBAR,
     ICON_CONFIG,
+    ICON_REPORT,
 
     /* Sidebar Importa */
     ICON_IMPORTA_SIDEBAR,

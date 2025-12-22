@@ -35,4 +35,7 @@ const char* get_selected_printer_from_window(void);
 // Aggiorna la griglia di stampa nella finestra stampa
 void refresh_print_window_grid(void);
 
+// NUOVO: Cancella il timeout di pulizia automatica della lista stampa
+void cancel_print_list_cleanup_timeout(void);
+
 #endif // PRINTER_H

@@ -234,11 +234,36 @@ extern void refresh_print_grid(void);
 static GtkWidget *print_window = NULL;
 static GtkWidget *printer_combo_box = NULL;
 static GtkWidget *print_grid_container_local = NULL;
+static guint print_list_cleanup_timeout_id = 0;  // NUOVO: ID timeout per pulizia automatica
+
+// NUOVO: Callback timeout per pulire la lista dopo 30 secondi
+static gboolean cleanup_print_list_timeout(gpointer data) {
+    g_info("Timeout scaduto: pulizia automatica lista stampa");
+    on_remove_from_print_list(NULL, NULL);
+    print_list_cleanup_timeout_id = 0;
+    return G_SOURCE_REMOVE;  // Rimuovi timeout dopo esecuzione
+}
+
+// NUOVO: Cancella timeout se attivo (chiamato quando si stampa)
+void cancel_print_list_cleanup_timeout(void) {
+    if (print_list_cleanup_timeout_id > 0) {
+        g_source_remove(print_list_cleanup_timeout_id);
+        print_list_cleanup_timeout_id = 0;
+        g_info("Timeout pulizia lista stampa cancellato");
+    }
+}
 
 static void on_print_window_destroyed(GtkWidget *widget, gpointer data) {
     print_window = NULL;
     printer_combo_box = NULL;
     print_grid_container_local = NULL;
+
+    // NUOVO: Avvia timeout di 30 secondi per pulire la lista se non stampato
+    if (print_list_cleanup_timeout_id > 0) {
+        g_source_remove(print_list_cleanup_timeout_id);
+    }
+    print_list_cleanup_timeout_id = g_timeout_add_seconds(30, cleanup_print_list_timeout, NULL);
+    g_info("Finestra stampa chiusa: pulizia lista programmata tra 30 secondi");
 }
 
 static void refresh_print_grid_local(void) {
@@ -311,6 +336,7 @@ static void refresh_print_grid_local(void) {
         gtk_widget_set_halign(copies_hbox, GTK_ALIGN_CENTER);
 
         copies_label = gtk_label_new("Copie:");
+        gtk_style_context_add_class(gtk_widget_get_style_context(copies_label), "title");
         gtk_box_pack_start(GTK_BOX(copies_hbox), copies_label, FALSE, FALSE, 0);
 
         item->spin_button = gtk_spin_button_new_with_range(1, 99, 1);

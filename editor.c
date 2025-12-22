@@ -1,12 +1,14 @@
 #include "editor.h"
 #include "icon_manager.h"
 #include "gui_utils.h"
+#include "utils.h"
 #include <gtk/gtk.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <gdk-pixbuf/gdk-pixbuf-enum-types.h>
 
 // External references from ikona.c and viewer.c
 extern char *image_files[10000];
+extern char *original_files[10000];
 extern int selected_images[10000];
 extern int selected_count;
 extern int selected_image_index;
@@ -115,7 +117,8 @@ static void load_current_image(void) {
     }
 
     int global_idx = selected_images[current_edit_index];
-    const char *image_path = image_files[global_idx];
+    // NUOVO: Usa path ORIGINALE (non thumbnail) per editing
+    const char *image_path = original_files[global_idx];
 
     g_print("Loading image %d/%d: %s\n", current_edit_index + 1, selected_count, image_path);
 
@@ -134,7 +137,7 @@ static void load_current_image(void) {
 
     current_image_path = g_strdup(image_path);
 
-    // Load new image
+    // Load new image (ORIGINALE a piena risoluzione)
     GError *error = NULL;
     original_pixbuf = gdk_pixbuf_new_from_file(image_path, &error);
     if (!original_pixbuf) {
@@ -325,6 +328,15 @@ static void on_save_and_next(GtkButton *button, gpointer data) {
         return;
     }
 
+    // NUOVO: Rigenera thumbnail dopo salvataggio originale
+    char *thumb_path = original_to_thumb_path(current_image_path);
+    if (thumb_path) {
+        if (create_thumbnail(current_image_path, thumb_path, 512) != 0) {
+            g_warning("Failed to update thumbnail for: %s", current_image_path);
+        }
+        // Note: thumb_path è static, non serve free
+    }
+
     g_print("Image %d/%d saved: %s\n", current_edit_index + 1, selected_count, current_image_path);
 
     // Move to next or close
@@ -359,6 +371,14 @@ static void on_save_all_and_close(GtkButton *button, gpointer data) {
 
         if (success) {
             g_print("Saved image %d/%d\n", current_edit_index + 1, selected_count);
+
+            // NUOVO: Rigenera thumbnail dopo salvataggio originale
+            char *thumb_path = original_to_thumb_path(current_image_path);
+            if (thumb_path) {
+                if (create_thumbnail(current_image_path, thumb_path, 512) != 0) {
+                    g_warning("Failed to update thumbnail for: %s", current_image_path);
+                }
+            }
         }
     }
 

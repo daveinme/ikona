@@ -1,0 +1,20 @@
+0 verbose cli /home/dave/.nvm/versions/node/v22.17.0/bin/node /home/dave/.nvm/versions/node/v22.17.0/bin/npm
+1 info using npm@10.9.2
+2 info using node@v22.17.0
+3 silly config load:file:/home/dave/.nvm/versions/node/v22.17.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/mnt/c/Users/Dave/.npmrc
+5 silly config load:file:/home/dave/.npmrc
+6 silly config load:file:/home/dave/.nvm/versions/node/v22.17.0/etc/npmrc
+7 verbose title npm view @anthropic-ai/claude-code@latest version
+8 verbose argv "view" "@anthropic-ai/claude-code@latest" "version" "--prefer-online"
+9 verbose logfile logs-max:10 dir:/mnt/c/Users/Dave/Desktop/codess/ikona/D:\CODES\npm-cache/_logs/2025-12-21T23_09_10_972Z-
+10 verbose logfile /mnt/c/Users/Dave/Desktop/codess/ikona/D:\CODES\npm-cache/_logs/2025-12-21T23_09_10_972Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 http fetch GET 200 https://registry.npmjs.org/@anthropic-ai%2fclaude-code 445ms (cache revalidated)
+14 verbose cwd /mnt/c/Users/Dave/Desktop/codess/ikona
+15 verbose os Linux 6.6.87.2-microsoft-standard-WSL2
+16 verbose node v22.17.0
+17 verbose npm  v10.9.2
+18 verbose exit 0
+19 info ok
